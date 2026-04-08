@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joeyparis/opencode-dashboard/internal/ui"
 )
 
 func main() {
@@ -15,5 +18,10 @@ func main() {
 	flag.Parse()
 
 	_ = dbPath // will be used in future tasks
-	fmt.Println("opencode-dashboard")
+
+	p := tea.NewProgram(ui.NewApp(), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
