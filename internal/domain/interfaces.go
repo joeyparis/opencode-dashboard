@@ -16,6 +16,7 @@ type SessionStore interface {
 type MessageStore interface {
 	GetLastMessageMeta(ctx context.Context, sessionID string) (MessageMeta, error)
 	GetMessageCount(ctx context.Context, sessionID string) (int, error)
+	GetRecentMessages(ctx context.Context, sessionID string, limit int) ([]MessagePreview, error)
 }
 
 // TodoStore provides read-only access to todo data
