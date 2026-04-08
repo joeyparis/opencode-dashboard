@@ -6,15 +6,11 @@ import (
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
-// Filter defines the criteria for filtering sessions.
 type Filter struct {
 	Preset     domain.FilterPreset
 	SearchText string
 }
 
-// Apply returns a new slice of sessions matching the filter criteria.
-// It does not mutate the input slice.
-// Returns an empty (non-nil) slice when no sessions match.
 func Apply(sessions []domain.SessionView, f Filter) []domain.SessionView {
 	result := make([]domain.SessionView, 0)
 	for _, s := range sessions {
