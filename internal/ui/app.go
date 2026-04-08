@@ -12,37 +12,44 @@ var headerStyle = lipgloss.NewStyle().
 	Padding(0, 1)
 
 type AppModel struct {
+	layout LayoutModel
 	width  int
 	height int
 }
 
 func NewApp() AppModel {
 	return AppModel{
-		width:  0,
-		height: 0,
+		layout: NewLayout(nil),
 	}
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return nil
+	return m.layout.Init()
 }
 
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		if msg.String() == "q" || msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		layoutMsg := tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: msg.Height - 1,
+		}
+		updated, cmd := m.layout.Update(layoutMsg)
+		m.layout = updated.(LayoutModel)
+		return m, cmd
 	}
-	return m, nil
+	updated, cmd := m.layout.Update(msg)
+	m.layout = updated.(LayoutModel)
+	return m, cmd
 }
 
 func (m AppModel) View() string {
 	header := headerStyle.Render("OpenCode Dashboard")
-	footer := "(press q to quit)"
-	return header + "\n\n" + footer
+	return header + "\n" + m.layout.View()
 }
