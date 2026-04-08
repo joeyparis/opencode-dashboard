@@ -77,8 +77,8 @@ func TestGetMessageCount(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if count != 1 {
-		t.Errorf("expected count=1, got %d", count)
+	if count != 5 {
+		t.Errorf("expected count=5, got %d", count)
 	}
 }
 
