@@ -31,6 +31,13 @@ type ErrorStore interface {
 	RefreshAll(ctx context.Context) error
 }
 
+// WaitingStore detects sessions with unanswered question tool prompts
+type WaitingStore interface {
+	GetWaiting(ctx context.Context, sessionID string) (bool, error)
+	RefreshAll(ctx context.Context) error
+	RefreshWaitingCache(ctx context.Context, since time.Time) error
+}
+
 // ProjectStore provides read-only access to project data
 type ProjectStore interface {
 	ListProjects(ctx context.Context) ([]Project, error)

@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/joeyparis/opencode-dashboard/internal/attention"
@@ -16,6 +18,7 @@ type Aggregator struct {
 	messages domain.MessageStore
 	todos    domain.TodoStore
 	errors   domain.ErrorStore
+	waiting  domain.WaitingStore
 	classify func(domain.SessionView, time.Time) domain.AttentionSignal
 }
 
@@ -26,6 +29,7 @@ func NewAggregator(
 	messages domain.MessageStore,
 	todos domain.TodoStore,
 	errors domain.ErrorStore,
+	waiting domain.WaitingStore,
 ) *Aggregator {
 	return &Aggregator{
 		projects: projects,
@@ -33,6 +37,7 @@ func NewAggregator(
 		messages: messages,
 		todos:    todos,
 		errors:   errors,
+		waiting:  waiting,
 		classify: attention.Classify,
 	}
 }
@@ -41,6 +46,10 @@ func NewAggregator(
 // Groups are sorted alphabetically by DisplayName; Global is always last.
 // Within each group sessions are sorted by AttentionSignal DESC, then TimeUpdated DESC.
 func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error) {
+	if err := a.waiting.RefreshAll(ctx); err != nil {
+		return nil, fmt.Errorf("waiting refresh: %w", err)
+	}
+
 	projects, err := a.projects.ListProjects(ctx)
 	if err != nil {
 		return nil, err
@@ -67,26 +76,32 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 		msgCount, _ := a.messages.GetMessageCount(ctx, s.ID)
 		childCount, _ := a.sessions.GetChildCount(ctx, s.ID)
 		errCount, _ := a.errors.GetErrorCount(ctx, s.ID)
+		hasPendingQuestion, _ := a.waiting.GetWaiting(ctx, s.ID)
 
 		pendingCount := 0
+		completedCount := 0
 		for _, t := range todos {
 			if t.Status != "completed" {
 				pendingCount++
+			} else {
+				completedCount++
 			}
 		}
 
 		proj := projectMap[s.ProjectID]
 		view := domain.SessionView{
-			Session:          s,
-			ProjectName:      proj.DisplayName(),
-			ProjectWorktree:  proj.Worktree,
-			Todos:            todos,
-			PendingTodoCount: pendingCount,
-			TotalTodoCount:   len(todos),
-			LastMessage:      lastMsg,
-			MessageCount:     msgCount,
-			ErrorCount:       errCount,
-			ChildCount:       childCount,
+			Session:            s,
+			ProjectName:        proj.DisplayName(),
+			ProjectWorktree:    proj.Worktree,
+			Todos:              todos,
+			PendingTodoCount:   pendingCount,
+			TotalTodoCount:     len(todos),
+			CompletedTodoCount: completedCount,
+			LastMessage:        lastMsg,
+			MessageCount:       msgCount,
+			ErrorCount:         errCount,
+			HasPendingQuestion: hasPendingQuestion,
+			ChildCount:         childCount,
 		}
 		view.AttentionSignal = a.classify(view, now)
 
@@ -98,11 +113,7 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 	for _, p := range projects {
 		views := viewsByProject[p.ID]
 
-		// Sort sessions: AttentionSignal DESC, then TimeUpdated DESC
 		sort.SliceStable(views, func(i, j int) bool {
-			if views[i].AttentionSignal != views[j].AttentionSignal {
-				return views[i].AttentionSignal > views[j].AttentionSignal
-			}
 			return views[i].TimeUpdated.After(views[j].TimeUpdated)
 		})
 
@@ -127,16 +138,19 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 		if iGlobal != jGlobal {
 			return !iGlobal // non-global comes before global
 		}
-		return groups[i].Project.DisplayName() < groups[j].Project.DisplayName()
+		return strings.ToLower(groups[i].Project.DisplayName()) < strings.ToLower(groups[j].Project.DisplayName())
 	})
 
 	return groups, nil
 }
 
-// Refresh refreshes the error cache then returns the same result as LoadAll.
+// Refresh refreshes the error and waiting caches then returns the same result as LoadAll.
 func (a *Aggregator) Refresh(ctx context.Context) ([]domain.ProjectGroup, error) {
 	if err := a.errors.RefreshErrorCache(ctx, time.Time{}); err != nil {
 		return nil, err
+	}
+	if err := a.waiting.RefreshWaitingCache(ctx, time.Time{}); err != nil {
+		return nil, fmt.Errorf("waiting cache refresh: %w", err)
 	}
 	return a.LoadAll(ctx)
 }

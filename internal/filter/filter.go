@@ -2,6 +2,7 @@ package filter
 
 import (
 	"strings"
+	"time"
 
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
@@ -9,6 +10,7 @@ import (
 type Filter struct {
 	Preset     domain.FilterPreset
 	SearchText string
+	Window     domain.TimeWindow
 }
 
 func Apply(sessions []domain.SessionView, f Filter) []domain.SessionView {
@@ -18,6 +20,9 @@ func Apply(sessions []domain.SessionView, f Filter) []domain.SessionView {
 			continue
 		}
 		if !matchesSearch(s, f.SearchText) {
+			continue
+		}
+		if !matchesWindow(s, f.Window) {
 			continue
 		}
 		result = append(result, s)
@@ -45,4 +50,11 @@ func matchesSearch(s domain.SessionView, text string) bool {
 	lower := strings.ToLower(text)
 	return strings.Contains(strings.ToLower(s.Title), lower) ||
 		strings.Contains(strings.ToLower(s.Slug), lower)
+}
+
+func matchesWindow(s domain.SessionView, w domain.TimeWindow) bool {
+	if w == domain.TimeWindowAll {
+		return true
+	}
+	return s.TimeUpdated.After(time.Now().Add(-w.Duration()))
 }

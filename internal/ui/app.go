@@ -175,6 +175,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.String() == "q" && !m.layout.IsSearchActive() {
 			return m, tea.Quit
 		}
+		if msg.String() == "r" && !m.layout.IsSearchActive() && m.aggregator != nil && !m.refreshing {
+			m.refreshing = true
+			return m, refreshDataCmd(m.aggregator)
+		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -246,7 +250,7 @@ func (m *AppModel) syncLayoutSize() {
 }
 
 func (m AppModel) chromeHeight() int {
-	height := 1
+	height := 2 // header + footer
 	if m.loadErr != nil {
 		height++
 	}
@@ -270,5 +274,9 @@ func (m AppModel) View() string {
 		parts = append(parts, loadingStyle.Render("Loading..."))
 	}
 	parts = append(parts, m.layout.View())
+	footer := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#555555")).
+		Render("j/k up/down  h/l pane  ← jump/collapse  Tab filter  t time  / search  r refresh  Enter launch  q quit")
+	parts = append(parts, footer)
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }

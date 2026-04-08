@@ -20,11 +20,15 @@ type FilterChangedMsg struct {
 // FilterBarModel is the filter bar UI component rendered above the split panes.
 type FilterBarModel struct {
 	preset     domain.FilterPreset
+	window     domain.TimeWindow
 	searchMode bool
 	textInput  textinput.Model
 	shownCount int
 	totalCount int
+	width      int
 }
+
+func (m *FilterBarModel) SetWidth(w int) { m.width = w }
 
 // NewFilterBar creates a new FilterBarModel defaulting to NeedsAttention.
 func NewFilterBar() FilterBarModel {
@@ -33,6 +37,7 @@ func NewFilterBar() FilterBarModel {
 	ti.CharLimit = 100
 	return FilterBarModel{
 		preset:    domain.FilterNeedsAttention,
+		window:    domain.TimeWindow3Days,
 		textInput: ti,
 	}
 }
@@ -47,6 +52,7 @@ func (m FilterBarModel) CurrentFilter() filter.Filter {
 	return filter.Filter{
 		Preset:     m.preset,
 		SearchText: m.textInput.Value(),
+		Window:     m.window,
 	}
 }
 
@@ -83,6 +89,9 @@ func (m FilterBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "tab":
 			m.preset = nextPreset(m.preset)
+			return m, emitFilterChanged(m)
+		case "t":
+			m.window = nextWindow(m.window)
 			return m, emitFilterChanged(m)
 		case "/":
 			m.searchMode = true
@@ -124,6 +133,8 @@ func (m FilterBarModel) View() string {
 
 	filterPart := "Filter: " + strings.Join(presetStrs, " | ")
 
+	windowPart := "Time: " + m.window.String()
+
 	var searchPart string
 	switch {
 	case m.searchMode:
@@ -136,7 +147,25 @@ func (m FilterBarModel) View() string {
 
 	counterPart := fmt.Sprintf("Showing %d of %d", m.shownCount, m.totalCount)
 
-	return strings.Join([]string{filterPart, searchPart, counterPart}, "  ")
+	color := func(c, text string) string {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color(c)).Render(text)
+	}
+	legend := strings.Join([]string{
+		color("#FF0000", "!") + " err",
+		color("#FF44FF", "@") + " waiting",
+		color("#00FF00", "*") + " active",
+		color("#FFFF00", "?") + " reply",
+		color("#FFA500", "~") + " stale",
+		color("#0088FF", ".") + " todos",
+	}, "  ")
+	left := strings.Join([]string{filterPart, windowPart, searchPart, counterPart}, "  ")
+	if m.width > 0 {
+		gap := m.width - lipgloss.Width(left) - lipgloss.Width(legend)
+		if gap > 0 {
+			return left + strings.Repeat(" ", gap) + legend
+		}
+	}
+	return left + "  " + legend
 }
 
 func nextPreset(p domain.FilterPreset) domain.FilterPreset {
@@ -150,10 +179,24 @@ func nextPreset(p domain.FilterPreset) domain.FilterPreset {
 	}
 }
 
+func nextWindow(w domain.TimeWindow) domain.TimeWindow {
+	switch w {
+	case domain.TimeWindowAll:
+		return domain.TimeWindow1Day
+	case domain.TimeWindow1Day:
+		return domain.TimeWindow3Days
+	case domain.TimeWindow3Days:
+		return domain.TimeWindow7Days
+	default:
+		return domain.TimeWindowAll
+	}
+}
+
 func emitFilterChanged(m FilterBarModel) tea.Cmd {
 	f := filter.Filter{
 		Preset:     m.preset,
 		SearchText: m.textInput.Value(),
+		Window:     m.window,
 	}
 	return func() tea.Msg {
 		return FilterChangedMsg{Filter: f}

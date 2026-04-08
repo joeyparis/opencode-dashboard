@@ -23,6 +23,10 @@ func Classify(view domain.SessionView, now time.Time) domain.AttentionSignal {
 		return domain.HasErrors
 	}
 
+	if view.HasPendingQuestion {
+		return domain.WaitingForInput
+	}
+
 	if age < ActiveNowWindow {
 		return domain.ActiveNow
 	}

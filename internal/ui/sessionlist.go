@@ -114,10 +114,24 @@ func (m SessionListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case "enter":
+		case " ":
 			if len(rows) > 0 && m.cursor < len(rows) {
 				row := rows[m.cursor]
 				if row.kind == rowProject {
+					m.collapsed[row.projectID] = !m.collapsed[row.projectID]
+				}
+			}
+		case "left":
+			if len(rows) > 0 && m.cursor < len(rows) {
+				row := rows[m.cursor]
+				if row.kind == rowSession {
+					for i := m.cursor - 1; i >= 0; i-- {
+						if rows[i].kind == rowProject && rows[i].projectID == row.projectID {
+							m.cursor = i
+							break
+						}
+					}
+				} else if row.kind == rowProject {
 					m.collapsed[row.projectID] = !m.collapsed[row.projectID]
 				}
 			}
@@ -189,11 +203,16 @@ func (m SessionListModel) renderProjectRow(row visibleRow, selected bool) string
 	}
 	label += ")"
 
+	// Truncate to pane width to prevent line wrapping
+	if m.width > 0 {
+		if runes := []rune(label); len(runes) > m.width {
+			label = string(runes[:m.width-1]) + "…"
+		}
+	}
+
 	style := lipgloss.NewStyle().Bold(true)
 	if selected {
-		style = style.
-			Background(lipgloss.Color("#3A3A5C")).
-			Foreground(lipgloss.Color("#FFFFFF"))
+		style = style.Reverse(true)
 	} else {
 		style = style.Foreground(lipgloss.Color("#AAAAFF"))
 	}
@@ -207,18 +226,25 @@ func (m SessionListModel) renderProjectRow(row visibleRow, selected bool) string
 func (m SessionListModel) renderSessionRow(row visibleRow, selected bool) string {
 	sv := m.groups[row.groupIdx].Sessions[row.sessionIdx]
 
-	icon := attentionIcon(sv.AttentionSignal)
+	icon := attentionIconPlain(sv.AttentionSignal)
+	if !selected {
+		icon = attentionIcon(sv.AttentionSignal)
+	}
 
-	slug := sv.Slug
-	if slug == "" {
-		slug = sv.ID[:min(8, len(sv.ID))]
+	// Prefer the session title; fall back to slug for default/empty titles
+	label := sv.Title
+	if isDefaultSessionTitle(label) {
+		label = sv.Slug
+	}
+	if label == "" {
+		label = sv.ID[:min(8, len(sv.ID))]
 	}
 
 	relTime := relativeTime(sv.TimeUpdated)
 
-	var todoStr string
+	var todoRaw string
 	if sv.TotalTodoCount > 0 {
-		todoStr = fmt.Sprintf("  %d/%d", sv.PendingTodoCount, sv.TotalTodoCount)
+		todoRaw = fmt.Sprintf("%d/%d", sv.CompletedTodoCount, sv.TotalTodoCount)
 	}
 
 	marker := "  "
@@ -226,16 +252,23 @@ func (m SessionListModel) renderSessionRow(row visibleRow, selected bool) string
 		marker = "> "
 	}
 
-	inner := fmt.Sprintf("%s[%s] %-24s  %-8s%s", marker, icon, slug, relTime, todoStr)
+	// Fixed visible cols: marker(2) + [icon](3) + space(1) + sep(2) + todo(7) + sep(2) + age(8) = 25
+	labelWidth := 24
+	if m.width > 26 {
+		labelWidth = m.width - 25
+	}
+	if runes := []rune(label); len(runes) > labelWidth {
+		label = string(runes[:labelWidth-1]) + "…"
+	}
+
+	// Order: label | todo (right-aligned, fixed 7) | age (right-aligned, fixed 8)
+	inner := fmt.Sprintf("%s[%s] %-*s  %7s  %8s", marker, icon, labelWidth, label, todoRaw, relTime)
 
 	var style lipgloss.Style
 	if selected {
-		style = lipgloss.NewStyle().
-			Background(lipgloss.Color("#1E1E3A")).
-			Foreground(lipgloss.Color("#E0E0FF"))
+		style = lipgloss.NewStyle().Reverse(true)
 	} else {
-		style = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#CCCCCC"))
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	}
 
 	if m.width > 0 {
@@ -263,4 +296,10 @@ func (m SessionListModel) scrollWindow(lines []string) string {
 		}
 	}
 	return strings.Join(lines[start:end], "\n")
+}
+
+func isDefaultSessionTitle(title string) bool {
+	return title == "" ||
+		strings.HasPrefix(title, "New session - ") ||
+		strings.HasPrefix(title, "Child session - ")
 }

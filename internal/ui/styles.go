@@ -17,6 +17,8 @@ func attentionIcon(signal domain.AttentionSignal) string {
 	switch signal {
 	case domain.HasErrors:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render("!")
+	case domain.WaitingForInput:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF44FF")).Render("@")
 	case domain.ActiveNow:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00")).Render("*")
 	case domain.NeedsResponse:
@@ -25,6 +27,25 @@ func attentionIcon(signal domain.AttentionSignal) string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Render("~")
 	case domain.PendingTodos:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#0088FF")).Render(".")
+	default:
+		return " "
+	}
+}
+
+func attentionIconPlain(signal domain.AttentionSignal) string {
+	switch signal {
+	case domain.HasErrors:
+		return "!"
+	case domain.WaitingForInput:
+		return "@"
+	case domain.ActiveNow:
+		return "*"
+	case domain.NeedsResponse:
+		return "?"
+	case domain.StaleWork:
+		return "~"
+	case domain.PendingTodos:
+		return "."
 	default:
 		return " "
 	}

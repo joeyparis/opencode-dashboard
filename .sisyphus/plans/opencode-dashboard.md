@@ -880,7 +880,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/store/errors.go, internal/store/errors_test.go`
   - Pre-commit: `go test -race ./internal/store/...`
 
-- [ ] 9. Attention Signal Classifier (TDD)
+- [x] 9. Attention Signal Classifier (TDD)
 
   **What to do**:
   - TDD: Write tests FIRST in `internal/attention/classifier_test.go`:
@@ -971,7 +971,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/attention/classifier.go, internal/attention/classifier_test.go`
   - Pre-commit: `go test ./internal/attention/...`
 
-- [ ] 10. Filter/Search Engine (TDD)
+- [x] 10. Filter/Search Engine (TDD)
 
   **What to do**:
   - TDD: Write tests FIRST in `internal/filter/filter_test.go`:
@@ -1037,7 +1037,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/filter/filter.go, internal/filter/filter_test.go`
   - Pre-commit: `go test ./internal/filter/...`
 
-- [ ] 11. Data Aggregator - View Model (TDD)
+- [x] 11. Data Aggregator - View Model (TDD)
 
   **What to do**:
   - TDD: Write tests FIRST in `internal/app/aggregator_test.go`:
@@ -1115,7 +1115,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/app/aggregator.go, internal/app/aggregator_test.go`
   - Pre-commit: `go test ./internal/app/...`
 
-- [ ] 12. Bubbletea App Skeleton
+- [x] 12. Bubbletea App Skeleton
 
   **What to do**:
   - Create `internal/ui/app.go`:
@@ -1189,7 +1189,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/ui/app.go, cmd/opencode-dashboard/main.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 13. Left Pane - Project Tree Component
+- [x] 13. Left Pane - Project Tree Component
 
   **What to do**:
   - Create `internal/ui/sessionlist.go`:
@@ -1286,7 +1286,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/ui/sessionlist.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 14. Right Pane - Session Detail View
+- [x] 14. Right Pane - Session Detail View
 
   **What to do**:
   - Create `internal/ui/detail.go`:
@@ -1372,7 +1372,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Pre-commit: `go build ./...`
   - Post-QA cleanup: remove `cmd/test-detail/` directory
 
-- [ ] 15. Split Layout + Pane Navigation
+- [x] 15. Split Layout + Pane Navigation
 
   **What to do**:
   - Create `internal/ui/layout.go`:
@@ -1466,7 +1466,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/ui/layout.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 16. Wire Data Layer into TUI
+- [x] 16. Wire Data Layer into TUI
 
   **What to do**:
   - Update `internal/ui/app.go`:
@@ -1552,7 +1552,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/ui/app.go, cmd/opencode-dashboard/main.go`
   - Pre-commit: `go build ./... && go test ./...`
 
-- [ ] 17. Filter Bar UI
+- [x] 17. Filter Bar UI
 
   **What to do**:
   - Create `internal/ui/filterbar.go`:
@@ -1638,7 +1638,7 @@ Max Concurrent: 4 (Waves 2 and 3)
   - Files: `internal/ui/filterbar.go, internal/ui/layout.go (updated)`
   - Pre-commit: `go build ./...`
 
-- [ ] 18. Auto-Refresh + Session Launcher
+- [x] 18. Auto-Refresh + Session Launcher
 
   **What to do**:
   - **Auto-refresh**: Update `internal/ui/app.go`:

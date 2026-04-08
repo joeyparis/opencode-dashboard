@@ -88,11 +88,18 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.list.SetSize(leftInnerW, contentH)
 		m.detail.SetSize(rightInnerW, contentH)
+		m.filterBar.SetWidth(m.width)
 		return m, nil
 
 	case tea.KeyMsg:
 		// Tab always cycles filter presets.
 		if msg.String() == "tab" {
+			updated, cmd := m.filterBar.Update(msg)
+			m.filterBar = updated.(FilterBarModel)
+			return m, cmd
+		}
+
+		if msg.String() == "t" && !m.filterBar.IsSearchMode() {
 			updated, cmd := m.filterBar.Update(msg)
 			m.filterBar = updated.(FilterBarModel)
 			return m, cmd
@@ -112,9 +119,21 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		// Left arrow: switch pane from right→left, or tree-nav within left pane.
+		if msg.String() == "left" {
+			if m.activePane == paneRight {
+				m.activePane = paneLeft
+				return m, nil
+			}
+			updated, cmd := m.list.Update(msg)
+			m.list = updated.(SessionListModel)
+			m.detail.SetSession(m.list.SelectedSession())
+			return m, cmd
+		}
+
 		// Pane switching.
 		switch msg.String() {
-		case "h", "left":
+		case "h":
 			m.activePane = paneLeft
 			return m, nil
 		case "l", "right":
@@ -206,7 +225,7 @@ func (m LayoutModel) View() string {
 }
 
 func (m LayoutModel) paneWidths() (left, right int) {
-	left = m.width * 2 / 5
+	left = m.width / 2
 	right = m.width - left - 1
 	if right < 0 {
 		right = 0

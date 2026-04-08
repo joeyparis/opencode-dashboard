@@ -29,10 +29,16 @@ func (r *ErrorRepo) GetErrorCount(ctx context.Context, sessionID string) (int, e
 
 func (r *ErrorRepo) RefreshAll(ctx context.Context) error {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT session_id, COUNT(*) as error_count
-		FROM part
-		WHERE json_extract(data, '$.state.status') = 'error'
-		GROUP BY session_id
+		SELECT p.session_id, COUNT(*) as error_count
+		FROM part p
+		WHERE json_extract(p.data, '$.state.status') = 'error'
+		  AND p.message_id IN (
+		      SELECT id FROM message m
+		      WHERE m.session_id = p.session_id
+		      ORDER BY m.time_created DESC
+		      LIMIT 1
+		  )
+		GROUP BY p.session_id
 	`)
 	if err != nil {
 		return fmt.Errorf("RefreshAll query: %w", err)
@@ -66,6 +72,12 @@ func (r *ErrorRepo) RefreshErrorCache(ctx context.Context, since time.Time) erro
 		WHERE json_extract(p.data, '$.state.status') = 'error'
 		  AND p.session_id IN (
 		      SELECT id FROM session WHERE time_updated > ?
+		  )
+		  AND p.message_id IN (
+		      SELECT id FROM message m
+		      WHERE m.session_id = p.session_id
+		      ORDER BY m.time_created DESC
+		      LIMIT 1
 		  )
 		GROUP BY p.session_id
 	`, since.UnixMilli())

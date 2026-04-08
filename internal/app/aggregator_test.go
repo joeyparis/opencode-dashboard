@@ -109,6 +109,25 @@ func (m *mockErrorStore) RefreshAll(_ context.Context) error {
 	return nil
 }
 
+type mockWaitingStore struct {
+	waiting map[string]bool
+}
+
+func (m *mockWaitingStore) GetWaiting(_ context.Context, sessionID string) (bool, error) {
+	if m.waiting == nil {
+		return false, nil
+	}
+	return m.waiting[sessionID], nil
+}
+
+func (m *mockWaitingStore) RefreshAll(_ context.Context) error {
+	return nil
+}
+
+func (m *mockWaitingStore) RefreshWaitingCache(_ context.Context, _ time.Time) error {
+	return nil
+}
+
 // --- Test helper ---
 
 func newTestAggregator(
@@ -125,6 +144,7 @@ func newTestAggregator(
 		msgs,
 		todos,
 		errors,
+		&mockWaitingStore{},
 	)
 }
 

@@ -33,13 +33,14 @@ func main() {
 	messageRepo := store.NewMessageRepo(db)
 	todoRepo := store.NewTodoRepo(db)
 	errorRepo := store.NewErrorRepo(db)
+	waitingRepo := store.NewWaitingRepo(db)
 
 	if err := errorRepo.RefreshAll(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading error cache: %v\n", err)
 		os.Exit(1)
 	}
 
-	agg := app.NewAggregator(projectRepo, sessionRepo, messageRepo, todoRepo, errorRepo)
+	agg := app.NewAggregator(projectRepo, sessionRepo, messageRepo, todoRepo, errorRepo, waitingRepo)
 	p := tea.NewProgram(ui.NewAppWithAggregator(agg), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

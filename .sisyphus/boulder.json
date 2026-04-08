@@ -2,10 +2,24 @@
   "active_plan": "/Users/joey/Sites/opencode-dashboard/.sisyphus/plans/opencode-dashboard.md",
   "started_at": "2026-04-08T18:42:13.474Z",
   "session_ids": [
-    "ses_291ccbec6ffe6Zc2SLaUqUF7W1"
+    "ses_291ccbec6ffe6Zc2SLaUqUF7W1",
+    "ses_29152c332ffecN38hFtLmhyj7O",
+    "ses_291528154ffeSkQb6jzniHWm3A",
+    "ses_291521b6effeAdsQF1dEOtxCu0",
+    "ses_291519a20ffeBTsqGrL1kM02AL",
+    "ses_2913bccc6ffeUYbcZd65PzCrut",
+    "ses_2910c2335ffe7pLl6uRD3HsQxd",
+    "ses_2910c0cc0ffermYzJT66arNbhB"
   ],
   "session_origins": {
-    "ses_291ccbec6ffe6Zc2SLaUqUF7W1": "direct"
+    "ses_291ccbec6ffe6Zc2SLaUqUF7W1": "direct",
+    "ses_29152c332ffecN38hFtLmhyj7O": "appended",
+    "ses_291528154ffeSkQb6jzniHWm3A": "appended",
+    "ses_291521b6effeAdsQF1dEOtxCu0": "appended",
+    "ses_291519a20ffeBTsqGrL1kM02AL": "appended",
+    "ses_2913bccc6ffeUYbcZd65PzCrut": "appended",
+    "ses_2910c2335ffe7pLl6uRD3HsQxd": "appended",
+    "ses_2910c0cc0ffermYzJT66arNbhB": "appended"
   },
   "plan_name": "opencode-dashboard",
   "agent": "atlas",
@@ -36,6 +50,15 @@
       "agent": "Sisyphus-Junior",
       "category": "unspecified-high",
       "updated_at": "2026-04-08T19:03:43.651Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** - `oracle`",
+      "session_id": "ses_29108956effe5kBbGYSjYAUpp4",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-08T21:24:13.425Z"
     }
   }
 }

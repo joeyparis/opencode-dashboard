@@ -77,12 +77,13 @@ type MessageMeta struct {
 type AttentionSignal int
 
 const (
-	None          AttentionSignal = 0
-	PendingTodos  AttentionSignal = 1
-	StaleWork     AttentionSignal = 2
-	NeedsResponse AttentionSignal = 3
-	ActiveNow     AttentionSignal = 4
-	HasErrors     AttentionSignal = 5
+	None            AttentionSignal = 0
+	PendingTodos    AttentionSignal = 1
+	StaleWork       AttentionSignal = 2
+	NeedsResponse   AttentionSignal = 3
+	ActiveNow       AttentionSignal = 4
+	WaitingForInput AttentionSignal = 5
+	HasErrors       AttentionSignal = 6
 )
 
 // String returns a human-readable name for the attention signal
@@ -90,6 +91,8 @@ func (a AttentionSignal) String() string {
 	switch a {
 	case HasErrors:
 		return "Has Errors"
+	case WaitingForInput:
+		return "Waiting for Input"
 	case ActiveNow:
 		return "Active Now"
 	case NeedsResponse:
@@ -124,19 +127,56 @@ func (f FilterPreset) String() string {
 	}
 }
 
+type TimeWindow int
+
+const (
+	TimeWindowAll TimeWindow = iota
+	TimeWindow1Day
+	TimeWindow3Days
+	TimeWindow7Days
+)
+
+func (w TimeWindow) String() string {
+	switch w {
+	case TimeWindow1Day:
+		return "1d"
+	case TimeWindow3Days:
+		return "3d"
+	case TimeWindow7Days:
+		return "7d"
+	default:
+		return "All"
+	}
+}
+
+func (w TimeWindow) Duration() time.Duration {
+	switch w {
+	case TimeWindow1Day:
+		return 24 * time.Hour
+	case TimeWindow3Days:
+		return 3 * 24 * time.Hour
+	case TimeWindow7Days:
+		return 7 * 24 * time.Hour
+	default:
+		return 0
+	}
+}
+
 // SessionView is the fully-populated view model for a session (used by UI)
 type SessionView struct {
-	Session          // embedded - all Session fields available directly
-	ProjectName      string
-	ProjectWorktree  string
-	AttentionSignal  AttentionSignal
-	Todos            []Todo // full todo list for detail pane
-	PendingTodoCount int
-	TotalTodoCount   int
-	LastMessage      MessageMeta
-	MessageCount     int
-	ErrorCount       int
-	ChildCount       int
+	Session            // embedded - all Session fields available directly
+	ProjectName        string
+	ProjectWorktree    string
+	AttentionSignal    AttentionSignal
+	Todos              []Todo // full todo list for detail pane
+	PendingTodoCount   int
+	TotalTodoCount     int
+	CompletedTodoCount int
+	LastMessage        MessageMeta
+	MessageCount       int
+	ErrorCount         int
+	HasPendingQuestion bool
+	ChildCount         int
 }
 
 // ProjectGroup is an ordered container of sessions grouped by project
