@@ -73,7 +73,7 @@ func (m DetailModel) View() string {
 		m.renderMetadata(),
 		m.renderStats(),
 		m.renderTodos(),
-		m.renderLastActivity(),
+		m.renderRecentMessages(),
 	}
 
 	var parts []string
@@ -183,26 +183,20 @@ func (m DetailModel) renderTodos() string {
 	return strings.Join(lines, "\n")
 }
 
-func (m DetailModel) renderLastActivity() string {
-	if m.session == nil {
+func (m DetailModel) renderRecentMessages() string {
+	if m.session == nil || len(m.session.RecentMessages) == 0 {
 		return ""
 	}
-	lm := m.session.LastMessage
-	if lm.TimeCreated.IsZero() {
-		return ""
-	}
-
-	header := sectionHeaderStyle(m.display.ColorHeader).Render("Last Activity")
+	header := sectionHeaderStyle(m.display.ColorHeader).Render("Recent Messages")
 	lines := []string{header}
-
-	if lm.Agent != "" {
-		lines = append(lines, fmt.Sprintf("  Agent:     %s", lm.Agent))
+	for _, msg := range m.session.RecentMessages {
+		role := "user"
+		if msg.Role == "assistant" {
+			role = "asst"
+		}
+		line := fmt.Sprintf("  %s  %s  %s", role, relativeTime(msg.TimeCreated), msg.Content)
+		lines = append(lines, line)
 	}
-	if lm.ModelID != "" {
-		lines = append(lines, fmt.Sprintf("  Model:     %s", lm.ModelID))
-	}
-	lines = append(lines, fmt.Sprintf("  Time:      %s", relativeTime(lm.TimeCreated)))
-
 	return strings.Join(lines, "\n")
 }
 
