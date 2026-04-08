@@ -51,6 +51,27 @@ func (m *SessionListModel) SetGroups(groups []domain.ProjectGroup) {
 	}
 }
 
+// RestoreSelection moves the cursor to the session with the given ID.
+// If the session is not visible or not found, cursor is unchanged.
+func (m *SessionListModel) RestoreSelection(sessionID string) {
+	if sessionID == "" {
+		return
+	}
+	rows := m.buildVisibleRows()
+	for i, row := range rows {
+		if row.kind != rowSession {
+			continue
+		}
+		g := m.groups[row.groupIdx]
+		if row.sessionIdx >= 0 && row.sessionIdx < len(g.Sessions) {
+			if g.Sessions[row.sessionIdx].ID == sessionID {
+				m.cursor = i
+				return
+			}
+		}
+	}
+}
+
 // SetSize sets the available width and height for rendering.
 func (m *SessionListModel) SetSize(w, h int) {
 	m.width = w

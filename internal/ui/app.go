@@ -3,12 +3,14 @@ package ui
 import (
 	"context"
 	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	appcore "github.com/joeyparis/opencode-dashboard/internal/app"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
+	"github.com/joeyparis/opencode-dashboard/internal/launcher"
 )
 
 var headerStyle = lipgloss.NewStyle().
@@ -35,6 +37,20 @@ type dataLoadErrorMsg struct {
 	err error
 }
 
+type refreshMsg struct{}
+
+type refreshDataLoadedMsg struct {
+	groups []domain.ProjectGroup
+}
+
+type launchSessionMsg struct {
+	session *domain.SessionView
+}
+
+type sessionResumeMsg struct {
+	err error
+}
+
 func loadDataCmd(agg *appcore.Aggregator) tea.Cmd {
 	return func() tea.Msg {
 		groups, err := agg.LoadAll(context.Background())
@@ -45,12 +61,29 @@ func loadDataCmd(agg *appcore.Aggregator) tea.Cmd {
 	}
 }
 
+func refreshDataCmd(agg *appcore.Aggregator) tea.Cmd {
+	return func() tea.Msg {
+		groups, err := agg.Refresh(context.Background())
+		if err != nil {
+			return dataLoadErrorMsg{err: err}
+		}
+		return refreshDataLoadedMsg{groups: groups}
+	}
+}
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(30*time.Second, func(t time.Time) tea.Msg {
+		return refreshMsg{}
+	})
+}
+
 type AppModel struct {
 	layout     LayoutModel
 	width      int
 	height     int
 	aggregator *appcore.Aggregator
 	loading    bool
+	refreshing bool
 	loadErr    error
 }
 
@@ -68,7 +101,7 @@ func NewAppWithAggregator(agg *appcore.Aggregator) AppModel {
 
 func (m AppModel) Init() tea.Cmd {
 	if m.aggregator != nil {
-		return tea.Batch(m.layout.Init(), loadDataCmd(m.aggregator))
+		return tea.Batch(m.layout.Init(), loadDataCmd(m.aggregator), tickCmd())
 	}
 	return m.layout.Init()
 }
@@ -81,11 +114,52 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loadErr = nil
 		m.syncLayoutSize()
 		return m, nil
+
 	case dataLoadErrorMsg:
 		m.loading = false
+		m.refreshing = false
 		m.loadErr = msg.err
 		m.syncLayoutSize()
 		return m, nil
+
+	case refreshMsg:
+		if m.aggregator == nil {
+			return m, tickCmd()
+		}
+		m.refreshing = true
+		return m, tea.Batch(refreshDataCmd(m.aggregator), tickCmd())
+
+	case refreshDataLoadedMsg:
+		selectedID := m.layout.SelectedSessionID()
+		m.layout.SetGroups(msg.groups)
+		if selectedID != "" {
+			m.layout.RestoreSelection(selectedID)
+		}
+		m.refreshing = false
+		m.loadErr = nil
+		m.syncLayoutSize()
+		return m, nil
+
+	case launchSessionMsg:
+		cmd, err := launcher.LaunchCmd(msg.session.ID, msg.session.Directory)
+		if err != nil {
+			m.loadErr = fmt.Errorf("launch failed: %w", err)
+			return m, nil
+		}
+		return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+			return sessionResumeMsg{err: err}
+		})
+
+	case sessionResumeMsg:
+		if msg.err != nil {
+			m.loadErr = msg.err
+		}
+		if m.aggregator != nil {
+			m.refreshing = true
+			return m, refreshDataCmd(m.aggregator)
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		if msg.String() == "q" || msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -125,10 +199,14 @@ func (m AppModel) chromeHeight() int {
 }
 
 func (m AppModel) View() string {
-	header := headerStyle.Render("OpenCode Dashboard")
+	headerText := "OpenCode Dashboard"
+	if m.refreshing {
+		headerText += "  [Refreshing...]"
+	}
+	header := headerStyle.Render(headerText)
 	parts := []string{header}
 	if m.loadErr != nil {
-		parts = append(parts, errorBannerStyle.Render(fmt.Sprintf("Error loading data: %v", m.loadErr)))
+		parts = append(parts, errorBannerStyle.Render(fmt.Sprintf("Error: %v", m.loadErr)))
 	}
 	if m.loading {
 		parts = append(parts, loadingStyle.Render("Loading..."))

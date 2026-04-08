@@ -31,6 +31,18 @@ func (m *LayoutModel) SetGroups(groups []domain.ProjectGroup) {
 	m.list.SetGroups(groups)
 }
 
+func (m *LayoutModel) SelectedSessionID() string {
+	sel := m.list.SelectedSession()
+	if sel == nil {
+		return ""
+	}
+	return sel.ID
+}
+
+func (m *LayoutModel) RestoreSelection(sessionID string) {
+	m.list.RestoreSelection(sessionID)
+}
+
 func (m LayoutModel) Init() tea.Cmd {
 	return tea.Batch(m.list.Init(), m.detail.Init())
 }
@@ -66,6 +78,12 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "l", "right":
 			m.activePane = paneRight
 			return m, nil
+		case "enter":
+			if m.activePane == paneLeft {
+				if sel := m.list.SelectedSession(); sel != nil {
+					return m, func() tea.Msg { return launchSessionMsg{session: sel} }
+				}
+			}
 		}
 
 		if m.activePane == paneLeft {
