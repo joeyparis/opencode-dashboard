@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joeyparis/opencode-dashboard/internal/app"
+	"github.com/joeyparis/opencode-dashboard/internal/store"
 	"github.com/joeyparis/opencode-dashboard/internal/ui"
 )
 
@@ -17,9 +20,27 @@ func main() {
 	dbPath := flag.String("db-path", defaultDB, "path to OpenCode SQLite database")
 	flag.Parse()
 
-	_ = dbPath // will be used in future tasks
+	db, err := store.NewDB(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening database: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
 
-	p := tea.NewProgram(ui.NewApp(), tea.WithAltScreen())
+	ctx := context.Background()
+	projectRepo := store.NewProjectRepo(db)
+	sessionRepo := store.NewSessionRepo(db)
+	messageRepo := store.NewMessageRepo(db)
+	todoRepo := store.NewTodoRepo(db)
+	errorRepo := store.NewErrorRepo(db)
+
+	if err := errorRepo.RefreshAll(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading error cache: %v\n", err)
+		os.Exit(1)
+	}
+
+	agg := app.NewAggregator(projectRepo, sessionRepo, messageRepo, todoRepo, errorRepo)
+	p := tea.NewProgram(ui.NewAppWithAggregator(agg), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
