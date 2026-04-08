@@ -10,6 +10,7 @@ import (
 
 	appcore "github.com/joeyparis/opencode-dashboard/internal/app"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
+	"github.com/joeyparis/opencode-dashboard/internal/filter"
 	"github.com/joeyparis/opencode-dashboard/internal/launcher"
 )
 
@@ -79,6 +80,7 @@ func tickCmd() tea.Cmd {
 
 type AppModel struct {
 	layout     LayoutModel
+	allGroups  []domain.ProjectGroup
 	width      int
 	height     int
 	aggregator *appcore.Aggregator
@@ -109,9 +111,10 @@ func (m AppModel) Init() tea.Cmd {
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case dataLoadedMsg:
-		m.layout.SetGroups(msg.groups)
+		m.allGroups = msg.groups
 		m.loading = false
 		m.loadErr = nil
+		m.applyFilter()
 		m.syncLayoutSize()
 		return m, nil
 
@@ -131,13 +134,18 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case refreshDataLoadedMsg:
 		selectedID := m.layout.SelectedSessionID()
-		m.layout.SetGroups(msg.groups)
+		m.allGroups = msg.groups
+		m.applyFilter()
 		if selectedID != "" {
 			m.layout.RestoreSelection(selectedID)
 		}
 		m.refreshing = false
 		m.loadErr = nil
 		m.syncLayoutSize()
+		return m, nil
+
+	case FilterChangedMsg:
+		m.applyFilter()
 		return m, nil
 
 	case launchSessionMsg:
@@ -161,7 +169,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if msg.String() == "q" || msg.String() == "ctrl+c" {
+		if msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+		if msg.String() == "q" && !m.layout.IsSearchActive() {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
@@ -173,6 +184,53 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	updated, cmd := m.layout.Update(msg)
 	m.layout = updated.(LayoutModel)
 	return m, cmd
+}
+
+func (m *AppModel) applyFilter() {
+	f := m.layout.CurrentFilter()
+
+	allSessions := make([]domain.SessionView, 0, len(m.allGroups)*4)
+	for _, g := range m.allGroups {
+		allSessions = append(allSessions, g.Sessions...)
+	}
+
+	filtered := filter.Apply(allSessions, f)
+	filteredGroups := regroupSessions(m.allGroups, filtered)
+
+	m.layout.SetGroups(filteredGroups)
+	m.layout.SetFilterCounts(len(filtered), len(allSessions))
+}
+
+func regroupSessions(allGroups []domain.ProjectGroup, filtered []domain.SessionView) []domain.ProjectGroup {
+	filteredSet := make(map[string]struct{}, len(filtered))
+	for _, sv := range filtered {
+		filteredSet[sv.ID] = struct{}{}
+	}
+
+	result := make([]domain.ProjectGroup, 0, len(allGroups))
+	for _, g := range allGroups {
+		var sessions []domain.SessionView
+		for _, sv := range g.Sessions {
+			if _, ok := filteredSet[sv.ID]; ok {
+				sessions = append(sessions, sv)
+			}
+		}
+		if len(sessions) == 0 {
+			continue
+		}
+		attentionCount := 0
+		for _, sv := range sessions {
+			if sv.AttentionSignal != domain.None {
+				attentionCount++
+			}
+		}
+		result = append(result, domain.ProjectGroup{
+			Project:        g.Project,
+			Sessions:       sessions,
+			AttentionCount: attentionCount,
+		})
+	}
+	return result
 }
 
 func (m *AppModel) syncLayoutSize() {
