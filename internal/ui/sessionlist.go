@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -243,35 +242,4 @@ func (m SessionListModel) scrollWindow(lines []string) string {
 		}
 	}
 	return strings.Join(lines[start:end], "\n")
-}
-
-func attentionIcon(signal domain.AttentionSignal) string {
-	switch signal {
-	case domain.HasErrors:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render("!")
-	case domain.ActiveNow:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00")).Render("*")
-	case domain.NeedsResponse:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00")).Render("?")
-	case domain.StaleWork:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Render("~")
-	case domain.PendingTodos:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#0088FF")).Render(".")
-	default:
-		return " "
-	}
-}
-
-func relativeTime(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "now"
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
 }
