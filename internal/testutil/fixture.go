@@ -279,7 +279,7 @@ VALUES (?, ?, ?, ?, ?, ?)
 	}{
 		"ses-active-now-msg-2",
 		"assistant",
-		now.Add(-1 * time.Minute),
+		now.Add(-3 * time.Minute),
 		"Working on it now.",
 	}
 
@@ -325,7 +325,7 @@ VALUES (?, ?, ?, ?, ?, ?)
 	}{
 		"ses-has-errors-msg-2",
 		"assistant",
-		now.Add(-29 * time.Minute),
+		now.Add(-31 * time.Minute),
 	}
 
 	msgJSON = map[string]interface{}{
