@@ -3,22 +3,18 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	appcore "github.com/joeyparis/opencode-dashboard/internal/app"
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 	"github.com/joeyparis/opencode-dashboard/internal/filter"
 	"github.com/joeyparis/opencode-dashboard/internal/launcher"
 )
-
-var headerStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#FAFAFA")).
-	Background(lipgloss.Color("#7D56F4")).
-	Padding(0, 1)
 
 var errorBannerStyle = lipgloss.NewStyle().
 	Bold(true).
@@ -72,21 +68,38 @@ func refreshDataCmd(agg *appcore.Aggregator) tea.Cmd {
 	}
 }
 
-func tickCmd() tea.Cmd {
-	return tea.Tick(30*time.Second, func(t time.Time) tea.Msg {
+func tickCmd(interval time.Duration) tea.Cmd {
+	return tea.Tick(interval, func(t time.Time) tea.Msg {
 		return refreshMsg{}
 	})
 }
 
 type AppModel struct {
-	layout     LayoutModel
-	allGroups  []domain.ProjectGroup
-	width      int
-	height     int
-	aggregator *appcore.Aggregator
-	loading    bool
-	refreshing bool
-	loadErr    error
+	cfg         config.Config
+	headerStyle lipgloss.Style
+	layout      LayoutModel
+	allGroups   []domain.ProjectGroup
+	width       int
+	height      int
+	aggregator  *appcore.Aggregator
+	loading     bool
+	refreshing  bool
+	loadErr     error
+}
+
+func NewAppWithConfig(cfg config.Config, agg *appcore.Aggregator) AppModel {
+	hs := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#FAFAFA")).
+		Background(lipgloss.Color(cfg.Display.ColorHeader)).
+		Padding(0, 1)
+	return AppModel{
+		cfg:         cfg,
+		headerStyle: hs,
+		layout:      NewLayout(nil),
+		aggregator:  agg,
+		loading:     agg != nil,
+	}
 }
 
 func NewApp() AppModel {
@@ -94,16 +107,13 @@ func NewApp() AppModel {
 }
 
 func NewAppWithAggregator(agg *appcore.Aggregator) AppModel {
-	return AppModel{
-		layout:     NewLayout(nil),
-		aggregator: agg,
-		loading:    agg != nil,
-	}
+	return NewAppWithConfig(config.Default(), agg)
 }
 
 func (m AppModel) Init() tea.Cmd {
+	interval := time.Duration(m.cfg.Defaults.RefreshInterval) * time.Second
 	if m.aggregator != nil {
-		return tea.Batch(m.layout.Init(), loadDataCmd(m.aggregator), tickCmd())
+		return tea.Batch(m.layout.Init(), loadDataCmd(m.aggregator), tickCmd(interval))
 	}
 	return m.layout.Init()
 }
@@ -126,11 +136,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case refreshMsg:
+		interval := time.Duration(m.cfg.Defaults.RefreshInterval) * time.Second
 		if m.aggregator == nil {
-			return m, tickCmd()
+			return m, tickCmd(interval)
 		}
 		m.refreshing = true
-		return m, tea.Batch(refreshDataCmd(m.aggregator), tickCmd())
+		return m, tea.Batch(refreshDataCmd(m.aggregator), tickCmd(interval))
 
 	case refreshDataLoadedMsg:
 		selectedID := m.layout.SelectedSessionID()
@@ -169,16 +180,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
+		keyStr := msg.String()
+		isQuit := config.Matches(keyStr, m.cfg.Keys.Quit)
+		isCtrlC := keyStr == "ctrl+c"
+		if isCtrlC || (isQuit && !m.layout.IsSearchActive()) {
 			return m, tea.Quit
 		}
-		if msg.String() == "q" && !m.layout.IsSearchActive() {
-			return m, tea.Quit
-		}
-		if msg.String() == "r" && !m.layout.IsSearchActive() && m.aggregator != nil && !m.refreshing {
+		if config.Matches(keyStr, m.cfg.Keys.Refresh) && !m.layout.IsSearchActive() && m.aggregator != nil && !m.refreshing {
 			m.refreshing = true
 			return m, refreshDataCmd(m.aggregator)
 		}
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -260,12 +272,16 @@ func (m AppModel) chromeHeight() int {
 	return height
 }
 
+func formatKeys(bindings []string) string {
+	return strings.Join(bindings, "/")
+}
+
 func (m AppModel) View() string {
 	headerText := "OpenCode Dashboard"
 	if m.refreshing {
 		headerText += "  [Refreshing...]"
 	}
-	header := headerStyle.Render(headerText)
+	header := m.headerStyle.Render(headerText)
 	parts := []string{header}
 	if m.loadErr != nil {
 		parts = append(parts, errorBannerStyle.Render(fmt.Sprintf("Error: %v", m.loadErr)))
@@ -274,9 +290,20 @@ func (m AppModel) View() string {
 		parts = append(parts, loadingStyle.Render("Loading..."))
 	}
 	parts = append(parts, m.layout.View())
+	footerText := fmt.Sprintf(
+		"%s up/down  %s/%s pane  \u2190 jump/collapse  %s filter  %s time  %s search  %s refresh  Enter launch  %s quit",
+		formatKeys(m.cfg.Keys.Down),
+		formatKeys(m.cfg.Keys.PaneLeft),
+		formatKeys(m.cfg.Keys.PaneRight),
+		formatKeys(m.cfg.Keys.CycleFilter),
+		formatKeys(m.cfg.Keys.CycleTime),
+		formatKeys(m.cfg.Keys.Search),
+		formatKeys(m.cfg.Keys.Refresh),
+		formatKeys(m.cfg.Keys.Quit),
+	)
 	footer := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#555555")).
-		Render("j/k up/down  h/l pane  ← jump/collapse  Tab filter  t time  / search  r refresh  Enter launch  q quit")
+		Render(footerText)
 	parts = append(parts, footer)
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
