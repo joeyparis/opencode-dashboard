@@ -328,14 +328,16 @@ func (m AppModel) View() string {
 	}
 	parts = append(parts, m.layout.View())
 	footerText := fmt.Sprintf(
-		"%s up/down  %s/%s pane  \u2190 jump/collapse  %s filter  %s time  %s search  %s refresh  Enter launch  %s quit",
+		"%s up/down  %s/%s pane  %s jump/collapse  %s filter  %s time  %s search  %s refresh  %s launch  %s quit",
 		formatKeys(m.cfg.Keys.Down),
 		formatKeys(m.cfg.Keys.PaneLeft),
 		formatKeys(m.cfg.Keys.PaneRight),
+		formatKeys(m.cfg.Keys.TreeNav),
 		formatKeys(m.cfg.Keys.CycleFilter),
 		formatKeys(m.cfg.Keys.CycleTime),
 		formatKeys(m.cfg.Keys.Search),
 		formatKeys(m.cfg.Keys.Refresh),
+		formatKeys(m.cfg.Keys.Launch),
 		formatKeys(m.cfg.Keys.Quit),
 	)
 	footer := lipgloss.NewStyle().
