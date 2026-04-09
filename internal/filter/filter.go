@@ -14,7 +14,7 @@ type Filter struct {
 }
 
 func Apply(sessions []domain.SessionView, f Filter, now time.Time) []domain.SessionView {
-	result := make([]domain.SessionView, 0)
+	filtered := make([]domain.SessionView, 0)
 	for _, s := range sessions {
 		if !matchesPreset(s, f.Preset) {
 			continue
@@ -25,9 +25,9 @@ func Apply(sessions []domain.SessionView, f Filter, now time.Time) []domain.Sess
 		if !matchesWindow(s, f.Window, now) {
 			continue
 		}
-		result = append(result, s)
+		filtered = append(filtered, s)
 	}
-	return result
+	return filtered
 }
 
 func matchesPreset(s domain.SessionView, preset domain.FilterPreset) bool {

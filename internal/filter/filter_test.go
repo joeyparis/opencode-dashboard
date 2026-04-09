@@ -85,23 +85,17 @@ func TestApply_ArchivedPreset(t *testing.T) {
 // Test 4: Search "auth" matches title of session 1
 func TestApply_SearchByTitle(t *testing.T) {
 	sessions := makeTestSessions()
-	f := filter.Filter{
-		Preset:     domain.FilterNeedsAttention,
-		SearchText: "auth",
-	}
 
-	// Use FilterNeedsAttention to keep only attention sessions, but "auth" appears in #1
-	// Actually let's use a broader test: search only
-	f2 := filter.Filter{
+	// Use FilterAllActive to keep only active sessions, "auth" appears in #1
+	f := filter.Filter{
 		Preset:     domain.FilterAllActive,
 		SearchText: "auth",
 	}
 
-	result := filter.Apply(sessions, f2, time.Now())
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "1", result[0].ID)
-	_ = f
 }
 
 // Test 5: Search "CI" is case-insensitive and matches slug "setup-ci"

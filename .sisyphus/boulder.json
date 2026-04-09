@@ -36,6 +36,41 @@
       "agent": "Sisyphus-Junior",
       "category": "deep",
       "updated_at": "2026-04-09T13:23:51.699Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Wire config into FilterBarModel",
+      "session_id": "ses_28d938f40ffejT1Id01YVPzMZ1",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T13:30:45.586Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Wire config into LayoutModel",
+      "session_id": "ses_28d8d3e48ffeGt9Ocmb7EFDA4e",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T13:37:18.983Z"
+    },
+    "todo:12": {
+      "task_key": "todo:12",
+      "task_label": "12",
+      "task_title": "main.go - Add --config flag, load config, bridge types, wire through",
+      "session_id": "ses_28d8769b8ffe57ogln6TbQ7hdL",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T13:45:09.429Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** - `oracle`",
+      "session_id": "ses_28d815f53ffecS0ouy1LgWUgYI",
+      "agent": "oracle",
+      "updated_at": "2026-04-09T13:51:16.218Z"
     }
   }
 }

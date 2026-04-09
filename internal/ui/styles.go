@@ -10,9 +10,11 @@ import (
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
-var sectionHeaderStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#7D56F4"))
+func sectionHeaderStyle(colorHeader string) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(colorHeader))
+}
 
 func iconAndColor(signal domain.AttentionSignal, d config.DisplayConfig) (string, string) {
 	switch signal {

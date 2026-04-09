@@ -40,7 +40,7 @@ func NewLayout(
 	return LayoutModel{
 		filterBar:      NewFilterBar(keys, display, windowOptions, defaultPreset, defaultWindowIdx),
 		list:           NewSessionList(groups, keys, display),
-		detail:         NewDetail(),
+		detail:         NewDetail(display),
 		keys:           keys,
 		display:        display,
 		listWidthRatio: listWidthRatio,

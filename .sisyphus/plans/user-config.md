@@ -849,7 +849,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/styles.go`, `internal/ui/sessionlist.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 7. Wire config into FilterBarModel
+- [x] 7. Wire config into FilterBarModel
 
   **What to do**:
   - Update `NewFilterBar()` signature to accept config parameters:
@@ -941,7 +941,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/filterbar.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 8. Wire config into SessionListModel
+- [x] 8. Wire config into SessionListModel
 
   **What to do**:
   - Update `NewSessionList()` to accept KeyMap and DisplayConfig:
@@ -1025,7 +1025,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/sessionlist.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 9. Wire config into LayoutModel
+- [x] 9. Wire config into LayoutModel
 
   **What to do**:
   - Update `NewLayout()` to accept all config needed by itself and its children:
@@ -1125,7 +1125,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/layout.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 10. Wire config into AppModel (keys, refresh, footer)
+- [x] 10. Wire config into AppModel (keys, refresh, footer)
 
   **What to do**:
   - Create new constructor `NewAppWithConfig(cfg config.Config, agg *appcore.Aggregator) AppModel` that replaces `NewAppWithAggregator`:
@@ -1263,7 +1263,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/app.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 11. Wire display config into filter bar legend
+- [x] 11. Wire display config into filter bar legend
 
   **What to do**:
   - This is a focused follow-up to Task 7 for the View() legend specifically
@@ -1345,7 +1345,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/ui/filterbar.go`
   - Pre-commit: `go build ./...`
 
-- [ ] 12. main.go - Add --config flag, load config, bridge types, wire through
+- [x] 12. main.go - Add --config flag, load config, bridge types, wire through
 
   **What to do**:
   - In `cmd/opencode-dashboard/main.go`:
