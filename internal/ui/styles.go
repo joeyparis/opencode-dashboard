@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
@@ -13,42 +14,39 @@ var sectionHeaderStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#7D56F4"))
 
-func attentionIcon(signal domain.AttentionSignal) string {
+func iconAndColor(signal domain.AttentionSignal, d config.DisplayConfig) (string, string) {
 	switch signal {
 	case domain.HasErrors:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render("!")
+		return d.IconError, d.ColorError
 	case domain.WaitingForInput:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF44FF")).Render("@")
+		return d.IconWaiting, d.ColorWaiting
 	case domain.ActiveNow:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00")).Render("*")
+		return d.IconActive, d.ColorActive
 	case domain.NeedsResponse:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00")).Render("?")
+		return d.IconReply, d.ColorReply
 	case domain.StaleWork:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Render("~")
+		return d.IconStale, d.ColorStale
 	case domain.PendingTodos:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#0088FF")).Render(".")
+		return d.IconTodos, d.ColorTodos
 	default:
-		return " "
+		return "", ""
 	}
 }
 
-func attentionIconPlain(signal domain.AttentionSignal) string {
-	switch signal {
-	case domain.HasErrors:
-		return "!"
-	case domain.WaitingForInput:
-		return "@"
-	case domain.ActiveNow:
-		return "*"
-	case domain.NeedsResponse:
-		return "?"
-	case domain.StaleWork:
-		return "~"
-	case domain.PendingTodos:
-		return "."
-	default:
+func attentionIcon(signal domain.AttentionSignal, d config.DisplayConfig) string {
+	icon, color := iconAndColor(signal, d)
+	if icon == "" {
 		return " "
 	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(icon)
+}
+
+func attentionIconPlain(signal domain.AttentionSignal, d config.DisplayConfig) string {
+	icon, _ := iconAndColor(signal, d)
+	if icon == "" {
+		return " "
+	}
+	return icon
 }
 
 func relativeTime(t time.Time) string {

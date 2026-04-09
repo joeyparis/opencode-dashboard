@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
@@ -15,10 +16,13 @@ type DetailModel struct {
 	width        int
 	height       int
 	scrollOffset int
+	display      config.DisplayConfig
 }
 
 func NewDetail() DetailModel {
-	return DetailModel{}
+	return DetailModel{
+		display: config.Default().Display,
+	}
 }
 
 func (m *DetailModel) SetSession(s *domain.SessionView) {
@@ -105,7 +109,7 @@ func (m DetailModel) renderHeader() string {
 	if title == "" {
 		title = m.session.Slug
 	}
-	badge := attentionIcon(m.session.AttentionSignal)
+	badge := attentionIcon(m.session.AttentionSignal, m.display)
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FAFAFA"))
 	return titleStyle.Render(title) + " " + badge
 }

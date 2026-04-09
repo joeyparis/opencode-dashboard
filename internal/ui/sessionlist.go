@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
@@ -31,6 +32,7 @@ type SessionListModel struct {
 	collapsed map[string]bool // project ID -> collapsed
 	width     int
 	height    int
+	display   config.DisplayConfig
 }
 
 // NewSessionList constructs a SessionListModel with the given data.
@@ -39,6 +41,7 @@ func NewSessionList(groups []domain.ProjectGroup) SessionListModel {
 		groups:    groups,
 		cursor:    0,
 		collapsed: make(map[string]bool),
+		display:   config.Default().Display,
 	}
 }
 
@@ -226,9 +229,9 @@ func (m SessionListModel) renderProjectRow(row visibleRow, selected bool) string
 func (m SessionListModel) renderSessionRow(row visibleRow, selected bool) string {
 	sv := m.groups[row.groupIdx].Sessions[row.sessionIdx]
 
-	icon := attentionIconPlain(sv.AttentionSignal)
+	icon := attentionIconPlain(sv.AttentionSignal, m.display)
 	if !selected {
-		icon = attentionIcon(sv.AttentionSignal)
+		icon = attentionIcon(sv.AttentionSignal, m.display)
 	}
 
 	// Prefer the session title; fall back to slug for default/empty titles
