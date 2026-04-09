@@ -12,7 +12,24 @@ const (
 	StaleThreshold      = 7 * 24 * time.Hour
 )
 
-func Classify(view domain.SessionView, now time.Time) domain.AttentionSignal {
+// Thresholds configures attention classifier time windows.
+type Thresholds struct {
+	ActiveNowWindow     time.Duration
+	NeedsResponseWindow time.Duration
+	StaleThreshold      time.Duration
+}
+
+// DefaultThresholds returns the built-in default attention thresholds.
+func DefaultThresholds() Thresholds {
+	return Thresholds{
+		ActiveNowWindow:     ActiveNowWindow,
+		NeedsResponseWindow: NeedsResponseWindow,
+		StaleThreshold:      StaleThreshold,
+	}
+}
+
+// ClassifyWith classifies a session using configurable thresholds.
+func ClassifyWith(view domain.SessionView, now time.Time, t Thresholds) domain.AttentionSignal {
 	if view.IsArchived() {
 		return domain.None
 	}
@@ -27,16 +44,16 @@ func Classify(view domain.SessionView, now time.Time) domain.AttentionSignal {
 		return domain.WaitingForInput
 	}
 
-	if age < ActiveNowWindow {
+	if age < t.ActiveNowWindow {
 		return domain.ActiveNow
 	}
 
-	if view.LastMessage.Role == "assistant" && age < NeedsResponseWindow {
+	if view.LastMessage.Role == "assistant" && age < t.NeedsResponseWindow {
 		return domain.NeedsResponse
 	}
 
 	if view.PendingTodoCount > 0 {
-		if age >= StaleThreshold {
+		if age >= t.StaleThreshold {
 			return domain.StaleWork
 		}
 
@@ -44,4 +61,8 @@ func Classify(view domain.SessionView, now time.Time) domain.AttentionSignal {
 	}
 
 	return domain.None
+}
+
+func Classify(view domain.SessionView, now time.Time) domain.AttentionSignal {
+	return ClassifyWith(view, now, DefaultThresholds())
 }
