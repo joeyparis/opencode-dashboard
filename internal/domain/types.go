@@ -127,39 +127,11 @@ func (f FilterPreset) String() string {
 	}
 }
 
-type TimeWindow int
-
-const (
-	TimeWindowAll TimeWindow = iota
-	TimeWindow1Day
-	TimeWindow3Days
-	TimeWindow7Days
-)
-
-func (w TimeWindow) String() string {
-	switch w {
-	case TimeWindow1Day:
-		return "1d"
-	case TimeWindow3Days:
-		return "3d"
-	case TimeWindow7Days:
-		return "7d"
-	default:
-		return "All"
-	}
-}
-
-func (w TimeWindow) Duration() time.Duration {
-	switch w {
-	case TimeWindow1Day:
-		return 24 * time.Hour
-	case TimeWindow3Days:
-		return 3 * 24 * time.Hour
-	case TimeWindow7Days:
-		return 7 * 24 * time.Hour
-	default:
-		return 0
-	}
+// TimeWindowOption represents a named time window for session filtering.
+// Duration 0 means "all" (no time filtering).
+type TimeWindowOption struct {
+	Label    string
+	Duration time.Duration
 }
 
 // SessionView is the fully-populated view model for a session (used by UI)

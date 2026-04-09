@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
@@ -31,14 +32,18 @@ type SessionListModel struct {
 	collapsed map[string]bool // project ID -> collapsed
 	width     int
 	height    int
+	keys      config.KeysConfig
+	display   config.DisplayConfig
 }
 
 // NewSessionList constructs a SessionListModel with the given data.
-func NewSessionList(groups []domain.ProjectGroup) SessionListModel {
+func NewSessionList(groups []domain.ProjectGroup, keys config.KeysConfig, display config.DisplayConfig) SessionListModel {
 	return SessionListModel{
 		groups:    groups,
 		cursor:    0,
 		collapsed: make(map[string]bool),
+		keys:      keys,
+		display:   display,
 	}
 }
 
@@ -105,23 +110,24 @@ func (m SessionListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		rows := m.buildVisibleRows()
-		switch msg.String() {
-		case "j", "down":
+		keyStr := msg.String()
+		switch {
+		case config.Matches(keyStr, m.keys.Down):
 			if m.cursor < len(rows)-1 {
 				m.cursor++
 			}
-		case "k", "up":
+		case config.Matches(keyStr, m.keys.Up):
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case " ":
+		case config.Matches(keyStr, m.keys.Collapse):
 			if len(rows) > 0 && m.cursor < len(rows) {
 				row := rows[m.cursor]
 				if row.kind == rowProject {
 					m.collapsed[row.projectID] = !m.collapsed[row.projectID]
 				}
 			}
-		case "left":
+		case config.Matches(keyStr, m.keys.TreeNav):
 			if len(rows) > 0 && m.cursor < len(rows) {
 				row := rows[m.cursor]
 				if row.kind == rowSession {
@@ -226,9 +232,9 @@ func (m SessionListModel) renderProjectRow(row visibleRow, selected bool) string
 func (m SessionListModel) renderSessionRow(row visibleRow, selected bool) string {
 	sv := m.groups[row.groupIdx].Sessions[row.sessionIdx]
 
-	icon := attentionIconPlain(sv.AttentionSignal)
+	icon := attentionIconPlain(sv.AttentionSignal, m.display)
 	if !selected {
-		icon = attentionIcon(sv.AttentionSignal)
+		icon = attentionIcon(sv.AttentionSignal, m.display)
 	}
 
 	// Prefer the session title; fall back to slug for default/empty titles

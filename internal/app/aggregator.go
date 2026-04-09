@@ -31,6 +31,19 @@ func NewAggregator(
 	errors domain.ErrorStore,
 	waiting domain.WaitingStore,
 ) *Aggregator {
+	return NewAggregatorWithClassifier(attention.Classify, projects, sessions, messages, todos, errors, waiting)
+}
+
+// NewAggregatorWithClassifier creates an Aggregator with a custom attention classifier.
+func NewAggregatorWithClassifier(
+	classify func(domain.SessionView, time.Time) domain.AttentionSignal,
+	projects domain.ProjectStore,
+	sessions domain.SessionStore,
+	messages domain.MessageStore,
+	todos domain.TodoStore,
+	errors domain.ErrorStore,
+	waiting domain.WaitingStore,
+) *Aggregator {
 	return &Aggregator{
 		projects: projects,
 		sessions: sessions,
@@ -38,7 +51,7 @@ func NewAggregator(
 		todos:    todos,
 		errors:   errors,
 		waiting:  waiting,
-		classify: attention.Classify,
+		classify: classify,
 	}
 }
 
@@ -71,6 +84,8 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 	viewsByProject := make(map[string][]domain.SessionView)
 
 	for _, s := range sessions {
+		// Best-effort enrichment: data fetch failures degrade gracefully to zero values
+		// rather than aborting the session load entirely.
 		todos, _ := a.todos.GetTodosBySession(ctx, s.ID)
 		lastMsg, _ := a.messages.GetLastMessageMeta(ctx, s.ID)
 		msgCount, _ := a.messages.GetMessageCount(ctx, s.ID)
@@ -109,7 +124,7 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 	}
 
 	// Build ProjectGroups
-	groups := make([]domain.ProjectGroup, 0, len(projects))
+	grouped := make([]domain.ProjectGroup, 0, len(projects))
 	for _, p := range projects {
 		views := viewsByProject[p.ID]
 
@@ -124,7 +139,7 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 			}
 		}
 
-		groups = append(groups, domain.ProjectGroup{
+		grouped = append(grouped, domain.ProjectGroup{
 			Project:        p,
 			Sessions:       views,
 			AttentionCount: attentionCount,
@@ -132,16 +147,16 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 	}
 
 	// Sort groups: alphabetical by DisplayName, Global always last
-	sort.SliceStable(groups, func(i, j int) bool {
-		iGlobal := groups[i].Project.ID == "global" || groups[i].Project.Worktree == "/"
-		jGlobal := groups[j].Project.ID == "global" || groups[j].Project.Worktree == "/"
+	sort.SliceStable(grouped, func(i, j int) bool {
+		iGlobal := grouped[i].Project.ID == "global" || grouped[i].Project.Worktree == "/"
+		jGlobal := grouped[j].Project.ID == "global" || grouped[j].Project.Worktree == "/"
 		if iGlobal != jGlobal {
 			return !iGlobal // non-global comes before global
 		}
-		return strings.ToLower(groups[i].Project.DisplayName()) < strings.ToLower(groups[j].Project.DisplayName())
+		return strings.ToLower(grouped[i].Project.DisplayName()) < strings.ToLower(grouped[j].Project.DisplayName())
 	})
 
-	return groups, nil
+	return grouped, nil
 }
 
 // Refresh refreshes the error and waiting caches then returns the same result as LoadAll.

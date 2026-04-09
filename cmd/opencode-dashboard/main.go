@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joeyparis/opencode-dashboard/internal/app"
+	"github.com/joeyparis/opencode-dashboard/internal/attention"
+	"github.com/joeyparis/opencode-dashboard/internal/config"
+	"github.com/joeyparis/opencode-dashboard/internal/domain"
 	"github.com/joeyparis/opencode-dashboard/internal/store"
 	"github.com/joeyparis/opencode-dashboard/internal/ui"
 )
@@ -18,7 +22,23 @@ func main() {
 	defaultDB := filepath.Join(home, ".local", "share", "opencode", "opencode.db")
 
 	dbPath := flag.String("db-path", defaultDB, "path to OpenCode SQLite database")
+	configPath := flag.String("config", "", "path to config.toml (default: ~/.config/opencode-dashboard/config.toml)")
 	flag.Parse()
+
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
+		os.Exit(1)
+	}
+
+	thresholds := attention.Thresholds{
+		ActiveNowWindow:     time.Duration(cfg.Thresholds.ActiveNowMinutes) * time.Minute,
+		NeedsResponseWindow: time.Duration(cfg.Thresholds.NeedsResponseHours) * time.Hour,
+		StaleThreshold:      time.Duration(cfg.Thresholds.StaleWorkDays) * 24 * time.Hour,
+	}
+	classify := func(v domain.SessionView, now time.Time) domain.AttentionSignal {
+		return attention.ClassifyWith(v, now, thresholds)
+	}
 
 	db, err := store.NewDB(*dbPath)
 	if err != nil {
@@ -40,8 +60,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	agg := app.NewAggregator(projectRepo, sessionRepo, messageRepo, todoRepo, errorRepo, waitingRepo)
-	p := tea.NewProgram(ui.NewAppWithAggregator(agg), tea.WithAltScreen())
+	agg := app.NewAggregatorWithClassifier(classify, projectRepo, sessionRepo, messageRepo, todoRepo, errorRepo, waitingRepo)
+	p := tea.NewProgram(ui.NewAppWithConfig(cfg, agg), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

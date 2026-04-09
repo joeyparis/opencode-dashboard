@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 )
 
@@ -15,10 +16,13 @@ type DetailModel struct {
 	width        int
 	height       int
 	scrollOffset int
+	display      config.DisplayConfig
 }
 
-func NewDetail() DetailModel {
-	return DetailModel{}
+func NewDetail(display config.DisplayConfig) DetailModel {
+	return DetailModel{
+		display: display,
+	}
 }
 
 func (m *DetailModel) SetSession(s *domain.SessionView) {
@@ -105,7 +109,7 @@ func (m DetailModel) renderHeader() string {
 	if title == "" {
 		title = m.session.Slug
 	}
-	badge := attentionIcon(m.session.AttentionSignal)
+	badge := attentionIcon(m.session.AttentionSignal, m.display)
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FAFAFA"))
 	return titleStyle.Render(title) + " " + badge
 }
@@ -115,7 +119,7 @@ func (m DetailModel) renderMetadata() string {
 		return ""
 	}
 	s := m.session
-	header := sectionHeaderStyle.Render("Metadata")
+	header := sectionHeaderStyle(m.display.ColorHeader).Render("Metadata")
 
 	relTime := relativeTime(s.TimeUpdated)
 	absTime := s.TimeUpdated.Format("Jan 2 15:04")
@@ -136,7 +140,7 @@ func (m DetailModel) renderStats() string {
 		return ""
 	}
 	s := m.session
-	header := sectionHeaderStyle.Render("Stats")
+	header := sectionHeaderStyle(m.display.ColorHeader).Render("Stats")
 
 	lines := []string{
 		header,
@@ -167,7 +171,7 @@ func (m DetailModel) renderTodos() string {
 		return ""
 	}
 
-	header := sectionHeaderStyle.Render("Todos")
+	header := sectionHeaderStyle(m.display.ColorHeader).Render("Todos")
 	lines := []string{header}
 
 	for _, todo := range m.session.Todos {
@@ -188,7 +192,7 @@ func (m DetailModel) renderLastActivity() string {
 		return ""
 	}
 
-	header := sectionHeaderStyle.Render("Last Activity")
+	header := sectionHeaderStyle(m.display.ColorHeader).Render("Last Activity")
 	lines := []string{header}
 
 	if lm.Agent != "" {
