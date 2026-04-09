@@ -313,6 +313,16 @@ func formatKeys(bindings []string) string {
 	return strings.Join(bindings, "/")
 }
 
+var (
+	footerKeyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
+	footerDescStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
+	footerDotStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+)
+
+func footerEntry(bindings []string, desc string) string {
+	return footerKeyStyle.Render(formatKeys(bindings)) + " " + footerDescStyle.Render(desc)
+}
+
 func (m AppModel) View() string {
 	headerText := "OpenCode Dashboard"
 	if m.refreshing {
@@ -327,22 +337,18 @@ func (m AppModel) View() string {
 		parts = append(parts, loadingStyle.Render("Loading..."))
 	}
 	parts = append(parts, m.layout.View())
-	footerText := fmt.Sprintf(
-		"%s up/down  %s/%s pane  %s jump/collapse  %s filter  %s time  %s search  %s refresh  %s launch  %s quit",
-		formatKeys(m.cfg.Keys.Down),
-		formatKeys(m.cfg.Keys.PaneLeft),
-		formatKeys(m.cfg.Keys.PaneRight),
-		formatKeys(m.cfg.Keys.TreeNav),
-		formatKeys(m.cfg.Keys.CycleFilter),
-		formatKeys(m.cfg.Keys.CycleTime),
-		formatKeys(m.cfg.Keys.Search),
-		formatKeys(m.cfg.Keys.Refresh),
-		formatKeys(m.cfg.Keys.Launch),
-		formatKeys(m.cfg.Keys.Quit),
-	)
-	footer := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#555555")).
-		Render(footerText)
+	dot := " " + footerDotStyle.Render("·") + " "
+	footer := strings.Join([]string{
+		footerEntry(m.cfg.Keys.Down, "up/down"),
+		footerEntry(m.cfg.Keys.PaneLeft, "left") + "/" + footerEntry(m.cfg.Keys.PaneRight, "right"),
+		footerEntry(m.cfg.Keys.TreeNav, "jump/collapse"),
+		footerEntry(m.cfg.Keys.CycleFilter, "filter"),
+		footerEntry(m.cfg.Keys.CycleTime, "time"),
+		footerEntry(m.cfg.Keys.Search, "search"),
+		footerEntry(m.cfg.Keys.Refresh, "refresh"),
+		footerEntry(m.cfg.Keys.Launch, "launch"),
+		footerEntry(m.cfg.Keys.Quit, "quit"),
+	}, dot)
 	parts = append(parts, footer)
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
