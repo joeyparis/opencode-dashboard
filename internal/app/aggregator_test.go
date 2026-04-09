@@ -65,6 +65,10 @@ func (m *mockMessageStore) GetMessageCount(_ context.Context, sessionID string) 
 	return m.messageCounts[sessionID], nil
 }
 
+func (m *mockMessageStore) GetRecentMessages(_ context.Context, sessionID string, limit int) ([]domain.MessagePreview, error) {
+	return []domain.MessagePreview{}, nil
+}
+
 type mockTodoStore struct {
 	todos map[string][]domain.Todo
 }

@@ -72,6 +72,15 @@ type MessageMeta struct {
 	TimeCreated time.Time
 }
 
+// MessagePreview is a truncated summary of a message for the detail pane.
+// Content is extracted from the part table using json_extract(data, '$.text') (verified against real DB).
+type MessagePreview struct {
+	Role        string
+	Agent       string
+	Content     string
+	TimeCreated time.Time
+}
+
 // AttentionSignal represents why a session needs user attention.
 // Higher numeric value = higher priority.
 type AttentionSignal int
@@ -145,6 +154,7 @@ type SessionView struct {
 	TotalTodoCount     int
 	CompletedTodoCount int
 	LastMessage        MessageMeta
+	RecentMessages     []MessagePreview
 	MessageCount       int
 	ErrorCount         int
 	HasPendingQuestion bool

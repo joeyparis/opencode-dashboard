@@ -141,8 +141,8 @@ func TestNewTestDB_ErrorParts(t *testing.T) {
 		t.Fatalf("failed to query error parts: %v", err)
 	}
 
-	if count != 3 {
-		t.Errorf("expected 3 error parts for ses-has-errors, got %d", count)
+	if count != 4 {
+		t.Errorf("expected 4 error parts for ses-has-errors, got %d", count)
 	}
 }
 

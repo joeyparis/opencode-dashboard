@@ -89,6 +89,7 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 		todos, _ := a.todos.GetTodosBySession(ctx, s.ID)
 		lastMsg, _ := a.messages.GetLastMessageMeta(ctx, s.ID)
 		msgCount, _ := a.messages.GetMessageCount(ctx, s.ID)
+		recentMsgs, _ := a.messages.GetRecentMessages(ctx, s.ID, 5)
 		childCount, _ := a.sessions.GetChildCount(ctx, s.ID)
 		errCount, _ := a.errors.GetErrorCount(ctx, s.ID)
 		hasPendingQuestion, _ := a.waiting.GetWaiting(ctx, s.ID)
@@ -113,6 +114,7 @@ func (a *Aggregator) LoadAll(ctx context.Context) ([]domain.ProjectGroup, error)
 			TotalTodoCount:     len(todos),
 			CompletedTodoCount: completedCount,
 			LastMessage:        lastMsg,
+			RecentMessages:     recentMsgs,
 			MessageCount:       msgCount,
 			ErrorCount:         errCount,
 			HasPendingQuestion: hasPendingQuestion,

@@ -221,6 +221,149 @@ VALUES (?, ?, ?, ?, ?)
 		}
 	}
 
+	// Seed additional messages for ses-needs-response with text parts
+	sesNeedsResponseMessages := []struct {
+		msgID string
+		role  string
+		time  time.Time
+		text  string
+	}{
+		{"ses-needs-response-msg-2", "assistant", now.Add(-63 * time.Minute), "I'll analyze the auth module and provide recommendations for refactoring. This will involve reviewing the current implementation and identifying areas for improvement."},
+		{"ses-needs-response-msg-3", "user", now.Add(-61 * time.Minute), "  Please also check the session handling.\n\nAnd fix the tests.  "},
+		{"ses-needs-response-msg-4", "assistant", now.Add(-59 * time.Minute), "I've reviewed the session handling code. Here are my findings and recommendations for improving the implementation and test coverage."},
+		{"ses-needs-response-msg-5", "assistant", now.Add(-57 * time.Minute), "Done. All changes committed."},
+	}
+
+	for _, msg := range sesNeedsResponseMessages {
+		msgJSON := map[string]interface{}{
+			"role":       msg.role,
+			"agent":      "Sisyphus",
+			"modelID":    "claude-haiku-4-5",
+			"providerID": "anthropic",
+			"time": map[string]int64{
+				"created": msg.time.UnixMilli(),
+			},
+		}
+		msgData, _ := json.Marshal(msgJSON)
+
+		_, err := db.Exec(`
+INSERT INTO message (id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?)
+`, msg.msgID, "ses-needs-response", msg.time.UnixMilli(), msg.time.UnixMilli(), string(msgData))
+		if err != nil {
+			return fmt.Errorf("failed to insert message %s: %w", msg.msgID, err)
+		}
+
+		// Insert text part for each message
+		partJSON := map[string]interface{}{
+			"type": "text",
+			"text": msg.text,
+		}
+		partData, _ := json.Marshal(partJSON)
+
+		_, err = db.Exec(`
+INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?, ?)
+`, msg.msgID+"-part-1", msg.msgID, "ses-needs-response", msg.time.UnixMilli(), msg.time.UnixMilli(), string(partData))
+		if err != nil {
+			return fmt.Errorf("failed to insert text part for %s: %w", msg.msgID, err)
+		}
+	}
+
+	// Seed additional message for ses-active-now with text part
+	sesActiveNowMsg := struct {
+		msgID string
+		role  string
+		time  time.Time
+		text  string
+	}{
+		"ses-active-now-msg-2",
+		"assistant",
+		now.Add(-3 * time.Minute),
+		"Working on it now.",
+	}
+
+	msgJSON := map[string]interface{}{
+		"role":       sesActiveNowMsg.role,
+		"agent":      "Sisyphus",
+		"modelID":    "claude-haiku-4-5",
+		"providerID": "anthropic",
+		"time": map[string]int64{
+			"created": sesActiveNowMsg.time.UnixMilli(),
+		},
+	}
+	msgData, _ := json.Marshal(msgJSON)
+
+	_, err := db.Exec(`
+INSERT INTO message (id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?)
+`, sesActiveNowMsg.msgID, "ses-active-now", sesActiveNowMsg.time.UnixMilli(), sesActiveNowMsg.time.UnixMilli(), string(msgData))
+	if err != nil {
+		return fmt.Errorf("failed to insert message %s: %w", sesActiveNowMsg.msgID, err)
+	}
+
+	// Insert text part for ses-active-now-msg-2
+	partJSON := map[string]interface{}{
+		"type": "text",
+		"text": sesActiveNowMsg.text,
+	}
+	partData, _ := json.Marshal(partJSON)
+
+	_, err = db.Exec(`
+INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?, ?)
+`, sesActiveNowMsg.msgID+"-part-1", sesActiveNowMsg.msgID, "ses-active-now", sesActiveNowMsg.time.UnixMilli(), sesActiveNowMsg.time.UnixMilli(), string(partData))
+	if err != nil {
+		return fmt.Errorf("failed to insert text part for %s: %w", sesActiveNowMsg.msgID, err)
+	}
+
+	// Seed additional message for ses-has-errors with tool-invocation part only (no text part)
+	sesHasErrorsMsg := struct {
+		msgID string
+		role  string
+		time  time.Time
+	}{
+		"ses-has-errors-msg-2",
+		"assistant",
+		now.Add(-31 * time.Minute),
+	}
+
+	msgJSON = map[string]interface{}{
+		"role":       sesHasErrorsMsg.role,
+		"agent":      "Sisyphus",
+		"modelID":    "claude-haiku-4-5",
+		"providerID": "anthropic",
+		"time": map[string]int64{
+			"created": sesHasErrorsMsg.time.UnixMilli(),
+		},
+	}
+	msgData, _ = json.Marshal(msgJSON)
+
+	_, err = db.Exec(`
+INSERT INTO message (id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?)
+`, sesHasErrorsMsg.msgID, "ses-has-errors", sesHasErrorsMsg.time.UnixMilli(), sesHasErrorsMsg.time.UnixMilli(), string(msgData))
+	if err != nil {
+		return fmt.Errorf("failed to insert message %s: %w", sesHasErrorsMsg.msgID, err)
+	}
+
+	// Insert tool-invocation part for ses-has-errors-msg-2 (no text part)
+	partJSON = map[string]interface{}{
+		"type": "tool-invocation",
+		"state": map[string]string{
+			"status": "error",
+		},
+	}
+	partData, _ = json.Marshal(partJSON)
+
+	_, err = db.Exec(`
+INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+VALUES (?, ?, ?, ?, ?, ?)
+`, "ses-has-errors-msg-2-part-1", sesHasErrorsMsg.msgID, "ses-has-errors", sesHasErrorsMsg.time.UnixMilli(), sesHasErrorsMsg.time.UnixMilli(), string(partData))
+	if err != nil {
+		return fmt.Errorf("failed to insert tool-invocation part for %s: %w", sesHasErrorsMsg.msgID, err)
+	}
+
 	// Seed error parts for ses-has-errors
 	for i := 1; i <= 3; i++ {
 		partJSON := map[string]interface{}{
