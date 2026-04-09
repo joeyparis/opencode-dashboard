@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 	"github.com/joeyparis/opencode-dashboard/internal/filter"
 )
@@ -34,8 +35,8 @@ func NewLayout(groups []domain.ProjectGroup) LayoutModel {
 		{Label: "All", Duration: 0},
 	}
 	return LayoutModel{
-		filterBar: NewFilterBar(defaultOptions, 1),
-		list:      NewSessionList(groups),
+		filterBar: NewFilterBar(config.Default().Keys, config.Default().Display, defaultOptions, domain.FilterNeedsAttention, 1),
+		list:      NewSessionList(groups, config.Default().Keys, config.Default().Display),
 		detail:    NewDetail(),
 	}
 }

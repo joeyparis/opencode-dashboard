@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/joeyparis/opencode-dashboard/internal/config"
 	"github.com/joeyparis/opencode-dashboard/internal/domain"
 	"github.com/joeyparis/opencode-dashboard/internal/filter"
 )
@@ -19,6 +20,8 @@ type FilterChangedMsg struct {
 
 // FilterBarModel is the filter bar UI component rendered above the split panes.
 type FilterBarModel struct {
+	keys          config.KeysConfig
+	display       config.DisplayConfig
 	preset        domain.FilterPreset
 	windowOptions []domain.TimeWindowOption
 	windowIdx     int
@@ -31,8 +34,8 @@ type FilterBarModel struct {
 
 func (m *FilterBarModel) SetWidth(w int) { m.width = w }
 
-// NewFilterBar creates a new FilterBarModel defaulting to NeedsAttention.
-func NewFilterBar(windowOptions []domain.TimeWindowOption, defaultWindowIdx int) FilterBarModel {
+// NewFilterBar creates a new FilterBarModel with the given config and defaults.
+func NewFilterBar(keys config.KeysConfig, display config.DisplayConfig, windowOptions []domain.TimeWindowOption, defaultPreset domain.FilterPreset, defaultWindowIdx int) FilterBarModel {
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
 	ti.CharLimit = 100
@@ -43,7 +46,9 @@ func NewFilterBar(windowOptions []domain.TimeWindowOption, defaultWindowIdx int)
 		defaultWindowIdx = 0
 	}
 	return FilterBarModel{
-		preset:        domain.FilterNeedsAttention,
+		keys:          keys,
+		display:       display,
+		preset:        defaultPreset,
 		windowOptions: windowOptions,
 		windowIdx:     defaultWindowIdx,
 		textInput:     ti,
@@ -94,14 +99,14 @@ func (m FilterBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
-		switch msg.String() {
-		case "tab":
+		switch {
+		case config.Matches(msg.String(), m.keys.CycleFilter):
 			m.preset = nextPreset(m.preset)
 			return m, emitFilterChanged(m)
-		case "t":
+		case config.Matches(msg.String(), m.keys.CycleTime):
 			m.windowIdx = (m.windowIdx + 1) % len(m.windowOptions)
 			return m, emitFilterChanged(m)
-		case "/":
+		case config.Matches(msg.String(), m.keys.Search):
 			m.searchMode = true
 			cmd := m.textInput.Focus()
 			return m, cmd
@@ -131,7 +136,7 @@ func (m FilterBarModel) View() string {
 			s := lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color("#FFFFFF")).
-				Background(lipgloss.Color("#7D56F4"))
+				Background(lipgloss.Color(m.display.ColorHeader))
 			presetStrs = append(presetStrs, s.Render("["+label+"]"))
 		} else {
 			s := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
@@ -159,12 +164,12 @@ func (m FilterBarModel) View() string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color(c)).Render(text)
 	}
 	legend := strings.Join([]string{
-		color("#FF0000", "!") + " err",
-		color("#FF44FF", "@") + " waiting",
-		color("#00FF00", "*") + " active",
-		color("#FFFF00", "?") + " reply",
-		color("#FFA500", "~") + " stale",
-		color("#0088FF", ".") + " todos",
+		color(m.display.ColorError, m.display.IconError) + " err",
+		color(m.display.ColorWaiting, m.display.IconWaiting) + " waiting",
+		color(m.display.ColorActive, m.display.IconActive) + " active",
+		color(m.display.ColorReply, m.display.IconReply) + " reply",
+		color(m.display.ColorStale, m.display.IconStale) + " stale",
+		color(m.display.ColorTodos, m.display.IconTodos) + " todos",
 	}, "  ")
 	left := strings.Join([]string{filterPart, windowPart, searchPart, counterPart}, "  ")
 	if m.width > 0 {

@@ -618,7 +618,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/attention/classifier.go`, `internal/attention/classifier_test.go`
   - Pre-commit: `go test ./internal/attention/`
 
-- [ ] 5. Replace TimeWindow enum with config-driven TimeWindowOption (ATOMIC)
+- [x] 5. Replace TimeWindow enum with config-driven TimeWindowOption (ATOMIC)
 
   **What to do**:
   This is an ATOMIC change across 4 files. All changes must happen in a single commit because the type is shared.
@@ -760,7 +760,7 @@ Max Concurrent: 5 (Wave 3)
   - Files: `internal/domain/types.go`, `internal/filter/filter.go`, `internal/filter/filter_test.go`, `internal/ui/filterbar.go`, `internal/ui/app.go`, `internal/config/config.go`
   - Pre-commit: `go test ./...`
 
-- [ ] 6. Display config helpers in styles.go
+- [x] 6. Display config helpers in styles.go
 
   **What to do**:
   - In `internal/ui/styles.go`, modify `attentionIcon()` and `attentionIconPlain()` to accept a `config.DisplayConfig` parameter:

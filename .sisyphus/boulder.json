@@ -27,6 +27,15 @@
       "agent": "Sisyphus-Junior",
       "category": "deep",
       "updated_at": "2026-04-09T13:14:54.628Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Replace TimeWindow enum with config-driven TimeWindowOption (ATOMIC)",
+      "session_id": "ses_28d9a8b31ffeO4F0J5hXqZQiaj",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T13:23:51.699Z"
     }
   }
 }
