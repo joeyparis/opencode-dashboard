@@ -30,3 +30,8 @@
 - Default time window: 3d
 - ColorHeader: "#7D56F4"
 - Hardcoded keys: Up=["k","up"], Down=["j","down"], PaneLeft=["h"], PaneRight=["l","right"], TreeNav=["left"], Collapse=[" "], CycleFilter=["tab"], CycleTime=["t"], Search=["/"], Refresh=["r"], Launch=["enter"], Quit=["q","ctrl+c"]
+
+## Task 12 Completion Notes
+- `cmd/opencode-dashboard/main.go` now loads config immediately after flag parsing and reports failures with `Config error: ...` on stderr.
+- Attention thresholds are bridged from `config.Config` into `attention.Thresholds` in main, then injected through `app.NewAggregatorWithClassifier()`.
+- Go's standard `flag` help renders the new option as `-config`, even when callers pass `--config` on the command line.

@@ -31,6 +31,19 @@ func NewAggregator(
 	errors domain.ErrorStore,
 	waiting domain.WaitingStore,
 ) *Aggregator {
+	return NewAggregatorWithClassifier(attention.Classify, projects, sessions, messages, todos, errors, waiting)
+}
+
+// NewAggregatorWithClassifier creates an Aggregator with a custom attention classifier.
+func NewAggregatorWithClassifier(
+	classify func(domain.SessionView, time.Time) domain.AttentionSignal,
+	projects domain.ProjectStore,
+	sessions domain.SessionStore,
+	messages domain.MessageStore,
+	todos domain.TodoStore,
+	errors domain.ErrorStore,
+	waiting domain.WaitingStore,
+) *Aggregator {
 	return &Aggregator{
 		projects: projects,
 		sessions: sessions,
@@ -38,7 +51,7 @@ func NewAggregator(
 		todos:    todos,
 		errors:   errors,
 		waiting:  waiting,
-		classify: attention.Classify,
+		classify: classify,
 	}
 }
 
