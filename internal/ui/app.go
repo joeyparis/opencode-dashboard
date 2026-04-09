@@ -88,6 +88,24 @@ type AppModel struct {
 }
 
 func NewAppWithConfig(cfg config.Config, agg *appcore.Aggregator) AppModel {
+	windowOptions := make([]domain.TimeWindowOption, 0, len(cfg.TimeWindows.Options)+1)
+	for _, opt := range cfg.TimeWindows.Options {
+		windowOptions = append(windowOptions, domain.TimeWindowOption{
+			Label:    opt.Label,
+			Duration: time.Duration(opt.Hours) * time.Hour,
+		})
+	}
+	windowOptions = append(windowOptions, domain.TimeWindowOption{Label: "All", Duration: 0})
+
+	defaultPreset := resolveDefaultPreset(cfg.Defaults.Filter)
+	defaultWindowIdx := 0
+	for i, opt := range windowOptions {
+		if opt.Label == cfg.Defaults.TimeWindow {
+			defaultWindowIdx = i
+			break
+		}
+	}
+
 	hs := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FAFAFA")).
@@ -96,9 +114,28 @@ func NewAppWithConfig(cfg config.Config, agg *appcore.Aggregator) AppModel {
 	return AppModel{
 		cfg:         cfg,
 		headerStyle: hs,
-		layout:      NewLayout(nil),
-		aggregator:  agg,
-		loading:     agg != nil,
+		layout: NewLayout(
+			nil,
+			cfg.Keys,
+			cfg.Display,
+			cfg.Defaults.ListWidthRatio,
+			windowOptions,
+			defaultPreset,
+			defaultWindowIdx,
+		),
+		aggregator: agg,
+		loading:    agg != nil,
+	}
+}
+
+func resolveDefaultPreset(filterStr string) domain.FilterPreset {
+	switch filterStr {
+	case "all_active":
+		return domain.FilterAllActive
+	case "archived":
+		return domain.FilterArchived
+	default:
+		return domain.FilterNeedsAttention
 	}
 }
 

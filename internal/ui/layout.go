@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -19,25 +17,33 @@ const (
 )
 
 type LayoutModel struct {
-	filterBar  FilterBarModel
-	list       SessionListModel
-	detail     DetailModel
-	activePane int
-	width      int
-	height     int
+	filterBar      FilterBarModel
+	list           SessionListModel
+	detail         DetailModel
+	activePane     int
+	width          int
+	height         int
+	keys           config.KeysConfig
+	display        config.DisplayConfig
+	listWidthRatio float64
 }
 
-func NewLayout(groups []domain.ProjectGroup) LayoutModel {
-	defaultOptions := []domain.TimeWindowOption{
-		{Label: "1d", Duration: 24 * time.Hour},
-		{Label: "3d", Duration: 72 * time.Hour},
-		{Label: "7d", Duration: 168 * time.Hour},
-		{Label: "All", Duration: 0},
-	}
+func NewLayout(
+	groups []domain.ProjectGroup,
+	keys config.KeysConfig,
+	display config.DisplayConfig,
+	listWidthRatio float64,
+	windowOptions []domain.TimeWindowOption,
+	defaultPreset domain.FilterPreset,
+	defaultWindowIdx int,
+) LayoutModel {
 	return LayoutModel{
-		filterBar: NewFilterBar(config.Default().Keys, config.Default().Display, defaultOptions, domain.FilterNeedsAttention, 1),
-		list:      NewSessionList(groups, config.Default().Keys, config.Default().Display),
-		detail:    NewDetail(),
+		filterBar:      NewFilterBar(keys, display, windowOptions, defaultPreset, defaultWindowIdx),
+		list:           NewSessionList(groups, keys, display),
+		detail:         NewDetail(),
+		keys:           keys,
+		display:        display,
+		listWidthRatio: listWidthRatio,
 	}
 }
 
@@ -93,13 +99,13 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		// Tab always cycles filter presets.
-		if msg.String() == "tab" {
+		if config.Matches(msg.String(), m.keys.CycleFilter) {
 			updated, cmd := m.filterBar.Update(msg)
 			m.filterBar = updated.(FilterBarModel)
 			return m, cmd
 		}
 
-		if msg.String() == "t" && !m.filterBar.IsSearchMode() {
+		if config.Matches(msg.String(), m.keys.CycleTime) && !m.filterBar.IsSearchMode() {
 			updated, cmd := m.filterBar.Update(msg)
 			m.filterBar = updated.(FilterBarModel)
 			return m, cmd
@@ -113,14 +119,14 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// '/' activates search.
-		if msg.String() == "/" {
+		if config.Matches(msg.String(), m.keys.Search) {
 			updated, cmd := m.filterBar.Update(msg)
 			m.filterBar = updated.(FilterBarModel)
 			return m, cmd
 		}
 
 		// Left arrow: switch pane from right→left, or tree-nav within left pane.
-		if msg.String() == "left" {
+		if config.Matches(msg.String(), m.keys.TreeNav) {
 			if m.activePane == paneRight {
 				m.activePane = paneLeft
 				return m, nil
@@ -132,14 +138,15 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Pane switching.
-		switch msg.String() {
-		case "h":
+		if config.Matches(msg.String(), m.keys.PaneLeft) {
 			m.activePane = paneLeft
 			return m, nil
-		case "l", "right":
+		}
+		if config.Matches(msg.String(), m.keys.PaneRight) {
 			m.activePane = paneRight
 			return m, nil
-		case "enter":
+		}
+		if config.Matches(msg.String(), m.keys.Launch) {
 			if m.activePane == paneLeft {
 				if sel := m.list.SelectedSession(); sel != nil {
 					return m, func() tea.Msg { return launchSessionMsg{session: sel} }
@@ -182,7 +189,7 @@ func (m LayoutModel) View() string {
 		rightTitle = "[*] Details"
 	}
 
-	activeColor := lipgloss.Color("#7D56F4")
+	activeColor := lipgloss.Color(m.display.ColorHeader)
 	inactiveColor := lipgloss.Color("#555555")
 
 	leftBorderColor := inactiveColor
@@ -216,7 +223,7 @@ func (m LayoutModel) View() string {
 }
 
 func (m LayoutModel) paneWidths() (left, right int) {
-	left = m.width / 2
+	left = int(float64(m.width) * m.listWidthRatio)
 	right = max(0, m.width-left-1)
 	return left, right
 }
