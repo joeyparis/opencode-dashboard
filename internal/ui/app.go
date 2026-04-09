@@ -198,7 +198,7 @@ func (m *AppModel) applyFilter() {
 		allSessions = append(allSessions, g.Sessions...)
 	}
 
-	filtered := filter.Apply(allSessions, f)
+	filtered := filter.Apply(allSessions, f, time.Now())
 	filteredGroups := regroupSessions(m.allGroups, filtered)
 
 	m.layout.SetGroups(filteredGroups)

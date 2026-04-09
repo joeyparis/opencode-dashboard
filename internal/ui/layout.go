@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -25,8 +27,14 @@ type LayoutModel struct {
 }
 
 func NewLayout(groups []domain.ProjectGroup) LayoutModel {
+	defaultOptions := []domain.TimeWindowOption{
+		{Label: "1d", Duration: 24 * time.Hour},
+		{Label: "3d", Duration: 72 * time.Hour},
+		{Label: "7d", Duration: 168 * time.Hour},
+		{Label: "All", Duration: 0},
+	}
 	return LayoutModel{
-		filterBar: NewFilterBar(),
+		filterBar: NewFilterBar(defaultOptions, 1),
 		list:      NewSessionList(groups),
 		detail:    NewDetail(),
 	}
@@ -74,18 +82,9 @@ func (m LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		leftWidth, rightWidth := m.paneWidths()
 		borderAndTitle := 3
-		contentH := m.height - filterBarHeight - borderAndTitle
-		if contentH < 0 {
-			contentH = 0
-		}
-		leftInnerW := leftWidth - 2
-		if leftInnerW < 0 {
-			leftInnerW = 0
-		}
-		rightInnerW := rightWidth - 2
-		if rightInnerW < 0 {
-			rightInnerW = 0
-		}
+		contentH := max(0, m.height-filterBarHeight-borderAndTitle)
+		leftInnerW := max(0, leftWidth-2)
+		rightInnerW := max(0, rightWidth-2)
 		m.list.SetSize(leftInnerW, contentH)
 		m.detail.SetSize(rightInnerW, contentH)
 		m.filterBar.SetWidth(m.width)
@@ -193,18 +192,9 @@ func (m LayoutModel) View() string {
 		rightBorderColor = activeColor
 	}
 
-	leftInnerW := leftWidth - 2
-	if leftInnerW < 0 {
-		leftInnerW = 0
-	}
-	rightInnerW := rightWidth - 2
-	if rightInnerW < 0 {
-		rightInnerW = 0
-	}
-	paneInnerH := m.height - filterBarHeight - 2
-	if paneInnerH < 1 {
-		paneInnerH = 1
-	}
+	leftInnerW := max(0, leftWidth-2)
+	rightInnerW := max(0, rightWidth-2)
+	paneInnerH := max(1, m.height-filterBarHeight-2)
 
 	leftPane := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -226,9 +216,6 @@ func (m LayoutModel) View() string {
 
 func (m LayoutModel) paneWidths() (left, right int) {
 	left = m.width / 2
-	right = m.width - left - 1
-	if right < 0 {
-		right = 0
-	}
+	right = max(0, m.width-left-1)
 	return left, right
 }

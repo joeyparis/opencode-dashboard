@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func fixedNow() time.Time {
+	return time.Date(2026, time.January, 2, 15, 4, 5, 0, time.UTC)
+}
+
 func makeTestSessions() []domain.SessionView {
 	now := time.Now()
 	return []domain.SessionView{
@@ -44,7 +48,7 @@ func TestApply_NeedsAttentionPreset(t *testing.T) {
 	sessions := makeTestSessions()
 	f := filter.Filter{Preset: domain.FilterNeedsAttention}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 2)
 	ids := sessionIDs(result)
@@ -57,7 +61,7 @@ func TestApply_AllActivePreset(t *testing.T) {
 	sessions := makeTestSessions()
 	f := filter.Filter{Preset: domain.FilterAllActive}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 3)
 	ids := sessionIDs(result)
@@ -72,7 +76,7 @@ func TestApply_ArchivedPreset(t *testing.T) {
 	sessions := makeTestSessions()
 	f := filter.Filter{Preset: domain.FilterArchived}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "2", result[0].ID)
@@ -93,7 +97,7 @@ func TestApply_SearchByTitle(t *testing.T) {
 		SearchText: "auth",
 	}
 
-	result := filter.Apply(sessions, f2)
+	result := filter.Apply(sessions, f2, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "1", result[0].ID)
@@ -108,7 +112,7 @@ func TestApply_SearchCaseInsensitive(t *testing.T) {
 		SearchText: "CI",
 	}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "3", result[0].ID)
@@ -122,7 +126,7 @@ func TestApply_EmptySearchReturnsAll(t *testing.T) {
 		SearchText: "",
 	}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	// All active: #1, #3, #4
 	assert.Len(t, result, 3)
@@ -136,7 +140,7 @@ func TestApply_CombinedPresetAndSearch(t *testing.T) {
 		SearchText: "auth",
 	}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "1", result[0].ID)
@@ -150,7 +154,7 @@ func TestApply_NoMatchesReturnsEmptySlice(t *testing.T) {
 		SearchText: "zzznomatch",
 	}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.NotNil(t, result)
 	assert.Len(t, result, 0)
@@ -163,7 +167,7 @@ func TestApply_DoesNotMutateInput(t *testing.T) {
 	copy(original, sessions)
 
 	f := filter.Filter{Preset: domain.FilterNeedsAttention}
-	_ = filter.Apply(sessions, f)
+	_ = filter.Apply(sessions, f, time.Now())
 
 	assert.Equal(t, original, sessions)
 }
@@ -176,8 +180,59 @@ func TestApply_SearchBySlug(t *testing.T) {
 		SearchText: "no-signal",
 	}
 
-	result := filter.Apply(sessions, f)
+	result := filter.Apply(sessions, f, time.Now())
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "4", result[0].ID)
+}
+
+func TestApply_TimeWindow_All(t *testing.T) {
+	now := fixedNow()
+	sessions := []domain.SessionView{
+		{Session: domain.Session{ID: "recent", TimeUpdated: now.Add(-10 * time.Hour)}},
+		{Session: domain.Session{ID: "old", TimeUpdated: now.Add(-30 * 24 * time.Hour)}},
+	}
+	f := filter.Filter{
+		Preset: domain.FilterAllActive,
+		Window: 0,
+	}
+
+	result := filter.Apply(sessions, f, now)
+
+	assert.Len(t, result, 2)
+	assert.Equal(t, []string{"recent", "old"}, sessionIDs(result))
+}
+
+func TestApply_TimeWindow_1Day(t *testing.T) {
+	now := fixedNow()
+	sessions := []domain.SessionView{
+		{Session: domain.Session{ID: "inside", TimeUpdated: now.Add(-10 * time.Hour)}},
+		{Session: domain.Session{ID: "outside", TimeUpdated: now.Add(-30 * time.Hour)}},
+	}
+	f := filter.Filter{
+		Preset: domain.FilterAllActive,
+		Window: 24 * time.Hour,
+	}
+
+	result := filter.Apply(sessions, f, now)
+
+	assert.Len(t, result, 1)
+	assert.Equal(t, "inside", result[0].ID)
+}
+
+func TestApply_TimeWindow_Boundary(t *testing.T) {
+	now := fixedNow()
+	sessions := []domain.SessionView{
+		{Session: domain.Session{ID: "boundary", TimeUpdated: now.Add(-24 * time.Hour)}},
+		{Session: domain.Session{ID: "inside", TimeUpdated: now.Add(-23 * time.Hour)}},
+	}
+	f := filter.Filter{
+		Preset: domain.FilterAllActive,
+		Window: 24 * time.Hour,
+	}
+
+	result := filter.Apply(sessions, f, now)
+
+	assert.Len(t, result, 1)
+	assert.Equal(t, "inside", result[0].ID)
 }

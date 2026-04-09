@@ -19,26 +19,34 @@ type FilterChangedMsg struct {
 
 // FilterBarModel is the filter bar UI component rendered above the split panes.
 type FilterBarModel struct {
-	preset     domain.FilterPreset
-	window     domain.TimeWindow
-	searchMode bool
-	textInput  textinput.Model
-	shownCount int
-	totalCount int
-	width      int
+	preset        domain.FilterPreset
+	windowOptions []domain.TimeWindowOption
+	windowIdx     int
+	searchMode    bool
+	textInput     textinput.Model
+	shownCount    int
+	totalCount    int
+	width         int
 }
 
 func (m *FilterBarModel) SetWidth(w int) { m.width = w }
 
 // NewFilterBar creates a new FilterBarModel defaulting to NeedsAttention.
-func NewFilterBar() FilterBarModel {
+func NewFilterBar(windowOptions []domain.TimeWindowOption, defaultWindowIdx int) FilterBarModel {
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
 	ti.CharLimit = 100
+	if len(windowOptions) == 0 {
+		windowOptions = []domain.TimeWindowOption{{Label: "All", Duration: 0}}
+	}
+	if defaultWindowIdx < 0 || defaultWindowIdx >= len(windowOptions) {
+		defaultWindowIdx = 0
+	}
 	return FilterBarModel{
-		preset:    domain.FilterNeedsAttention,
-		window:    domain.TimeWindow3Days,
-		textInput: ti,
+		preset:        domain.FilterNeedsAttention,
+		windowOptions: windowOptions,
+		windowIdx:     defaultWindowIdx,
+		textInput:     ti,
 	}
 }
 
@@ -52,7 +60,7 @@ func (m FilterBarModel) CurrentFilter() filter.Filter {
 	return filter.Filter{
 		Preset:     m.preset,
 		SearchText: m.textInput.Value(),
-		Window:     m.window,
+		Window:     m.windowOptions[m.windowIdx].Duration,
 	}
 }
 
@@ -91,7 +99,7 @@ func (m FilterBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.preset = nextPreset(m.preset)
 			return m, emitFilterChanged(m)
 		case "t":
-			m.window = nextWindow(m.window)
+			m.windowIdx = (m.windowIdx + 1) % len(m.windowOptions)
 			return m, emitFilterChanged(m)
 		case "/":
 			m.searchMode = true
@@ -133,7 +141,7 @@ func (m FilterBarModel) View() string {
 
 	filterPart := "Filter: " + strings.Join(presetStrs, " | ")
 
-	windowPart := "Time: " + m.window.String()
+	windowPart := "Time: " + m.windowOptions[m.windowIdx].Label
 
 	var searchPart string
 	switch {
@@ -179,24 +187,11 @@ func nextPreset(p domain.FilterPreset) domain.FilterPreset {
 	}
 }
 
-func nextWindow(w domain.TimeWindow) domain.TimeWindow {
-	switch w {
-	case domain.TimeWindowAll:
-		return domain.TimeWindow1Day
-	case domain.TimeWindow1Day:
-		return domain.TimeWindow3Days
-	case domain.TimeWindow3Days:
-		return domain.TimeWindow7Days
-	default:
-		return domain.TimeWindowAll
-	}
-}
-
 func emitFilterChanged(m FilterBarModel) tea.Cmd {
 	f := filter.Filter{
 		Preset:     m.preset,
 		SearchText: m.textInput.Value(),
-		Window:     m.window,
+		Window:     m.windowOptions[m.windowIdx].Duration,
 	}
 	return func() tea.Msg {
 		return FilterChangedMsg{Filter: f}

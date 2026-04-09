@@ -10,10 +10,10 @@ import (
 type Filter struct {
 	Preset     domain.FilterPreset
 	SearchText string
-	Window     domain.TimeWindow
+	Window     time.Duration
 }
 
-func Apply(sessions []domain.SessionView, f Filter) []domain.SessionView {
+func Apply(sessions []domain.SessionView, f Filter, now time.Time) []domain.SessionView {
 	result := make([]domain.SessionView, 0)
 	for _, s := range sessions {
 		if !matchesPreset(s, f.Preset) {
@@ -22,7 +22,7 @@ func Apply(sessions []domain.SessionView, f Filter) []domain.SessionView {
 		if !matchesSearch(s, f.SearchText) {
 			continue
 		}
-		if !matchesWindow(s, f.Window) {
+		if !matchesWindow(s, f.Window, now) {
 			continue
 		}
 		result = append(result, s)
@@ -52,9 +52,9 @@ func matchesSearch(s domain.SessionView, text string) bool {
 		strings.Contains(strings.ToLower(s.Slug), lower)
 }
 
-func matchesWindow(s domain.SessionView, w domain.TimeWindow) bool {
-	if w == domain.TimeWindowAll {
+func matchesWindow(s domain.SessionView, d time.Duration, now time.Time) bool {
+	if d == 0 {
 		return true
 	}
-	return s.TimeUpdated.After(time.Now().Add(-w.Duration()))
+	return s.TimeUpdated.After(now.Add(-d))
 }
