@@ -260,7 +260,7 @@ func regroupSessions(allGroups []domain.ProjectGroup, filtered []domain.SessionV
 		filteredSet[sv.ID] = struct{}{}
 	}
 
-	result := make([]domain.ProjectGroup, 0, len(allGroups))
+	grouped := make([]domain.ProjectGroup, 0, len(allGroups))
 	for _, g := range allGroups {
 		var sessions []domain.SessionView
 		for _, sv := range g.Sessions {
@@ -277,13 +277,13 @@ func regroupSessions(allGroups []domain.ProjectGroup, filtered []domain.SessionV
 				attentionCount++
 			}
 		}
-		result = append(result, domain.ProjectGroup{
+		grouped = append(grouped, domain.ProjectGroup{
 			Project:        g.Project,
 			Sessions:       sessions,
 			AttentionCount: attentionCount,
 		})
 	}
-	return result
+	return grouped
 }
 
 func (m *AppModel) syncLayoutSize() {
