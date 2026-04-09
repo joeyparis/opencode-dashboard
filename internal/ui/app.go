@@ -310,7 +310,7 @@ func (m AppModel) chromeHeight() int {
 }
 
 func formatKeys(bindings []string) string {
-	return strings.Join(bindings, "/")
+	return strings.Join(bindings, ",")
 }
 
 var (
@@ -340,7 +340,7 @@ func (m AppModel) View() string {
 	dot := " " + footerDotStyle.Render("·") + " "
 	footer := strings.Join([]string{
 		footerEntry(m.cfg.Keys.Down, "up/down"),
-		footerEntry(m.cfg.Keys.PaneLeft, "left") + "/" + footerEntry(m.cfg.Keys.PaneRight, "right"),
+		footerEntry(append(append([]string{}, m.cfg.Keys.PaneLeft...), m.cfg.Keys.PaneRight...), "pane"),
 		footerEntry(m.cfg.Keys.TreeNav, "jump/collapse"),
 		footerEntry(m.cfg.Keys.CycleFilter, "filter"),
 		footerEntry(m.cfg.Keys.CycleTime, "time"),
